@@ -1,5 +1,5 @@
 /**
- * lzav.h version 1.1
+ * lzav.h version 1.2
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithm.
@@ -106,10 +106,10 @@
 #endif // LZAV_LITTLE_ENDIAN
 
 // Likelihood macros that are used for manually-guided micro-optimization
-// (they do not provide an improvement with GCC, and on Apple Silicon these
-// guidances are slightly counter-productive).
+// (on Apple Silicon these guidances are slightly counter-productive).
 
-#if defined( __clang__ ) && !( defined( __aarch64__ ) && defined( __APPLE__ ))
+#if ( defined( __GNUC__ ) || defined( __clang__ )) && \
+	!( defined( __aarch64__ ) && defined( __APPLE__ ))
 
 	#define LZAV_LIKELY( x )  __builtin_expect( x, 1 )
 	#define LZAV_UNLIKELY( x )  __builtin_expect( x, 0 )
@@ -277,7 +277,7 @@ static inline uint8_t* lzav_write_blk( uint8_t* op, size_t lc, size_t rc,
 {
 	uint8_t* cbp = *cbpp;
 
-	while( lc >= LZAV_LIT_LEN )
+	while( LZAV_UNLIKELY( lc >= LZAV_LIT_LEN ))
 	{
 		// Write literals due to literal length overflow.
 
@@ -946,7 +946,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 					ip += 4;
 				}
 				else
-				if( bt == 1 )
+				if( LZAV_LIKELY( bt == 1 ))
 				{
 					cc += ip[ 1 ];
 					LZAV_SET_IPD( bh >> 6 | ip[ 2 ] << 2 );

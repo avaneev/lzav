@@ -78,7 +78,7 @@ visit [lzbench](https://github.com/inikep/lzbench).
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 1.1**    |495 MB/s       |2770 MB/s      |41.84          |
+|**LZAV 1.2**    |495 MB/s       |2770 MB/s      |41.84          |
 |LZ4 1.9.2       |670 MB/s       |3950 MB/s      |47.60          |
 |LZF 3.6         |390 MB/s       |810 MB/s       |48.15          |
 
@@ -86,7 +86,7 @@ visit [lzbench](https://github.com/inikep/lzbench).
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 1.1**    |420 MB/s       |2470 MB/s      |41.84          |
+|**LZAV 1.2**    |420 MB/s       |2480 MB/s      |41.84          |
 |LZ4 1.9.2       |660 MB/s       |4200 MB/s      |47.60          |
 |LZF 3.6         |350 MB/s       |700 MB/s       |48.15          |
 
@@ -94,6 +94,6 @@ visit [lzbench](https://github.com/inikep/lzbench).
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 1.1**    |370 MB/s       |2050 MB/s      |41.84          |
+|**LZAV 1.2**    |370 MB/s       |2100 MB/s      |41.84          |
 |LZ4 1.9.2       |620 MB/s       |4300 MB/s      |47.60          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
