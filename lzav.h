@@ -1,5 +1,5 @@
 /**
- * lzav.h version 1.0
+ * lzav.h version 1.1
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithm.
@@ -105,9 +105,11 @@
 
 #endif // LZAV_LITTLE_ENDIAN
 
-// Likelihood macros that are used for manually-guided micro-optimization.
+// Likelihood macros that are used for manually-guided micro-optimization
+// (they do not provide an improvement with GCC, and on Apple Silicon these
+// guidances are slightly counter-productive).
 
-#if defined( __GNUC__ ) || defined( __clang__ )
+#if defined( __clang__ ) && !( defined( __aarch64__ ) && defined( __APPLE__ ))
 
 	#define LZAV_LIKELY( x )  __builtin_expect( x, 1 )
 	#define LZAV_UNLIKELY( x )  __builtin_expect( x, 0 )
@@ -160,9 +162,9 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 			p2 += 8;
 		}
 
-	#endif // 64-bit check
+	#endif // 64-bit availability check
 
-	while( p1 + 3 < p1e )
+	while( LZAV_LIKELY( p1 + 3 < p1e ))
 	{
 		uint32_t v1, v2, vd;
 		memcpy( &v1, p1, 4 );
@@ -201,7 +203,7 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 
 	while( 1 )
 	{
-		if( ml > 7 )
+		if( LZAV_LIKELY( ml > 7 ))
 		{
 			if( p1[ 0 ] != p2[ 0 ]) break; l++;
 			if( p1[ 1 ] != p2[ 1 ]) break; l++;
@@ -218,7 +220,7 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 		p1 += l;
 		p2 += l;
 
-		while( p1 < p1e )
+		while( LZAV_LIKELY( p1 < p1e ))
 		{
 			if( *p1 != *p2 )
 			{
@@ -293,14 +295,14 @@ static inline uint8_t* lzav_write_blk( uint8_t* op, size_t lc, size_t rc,
 		lc -= LZAV_LIT_LEN;
 	}
 
-	if( lc != 0 )
+	if( LZAV_UNLIKELY( lc != 0 ))
 	{
 		// Write literal block.
 
 		cbp = op;
 		*cbpp = op;
 
-		if( lc < 9 )
+		if( LZAV_LIKELY( lc < 9 ))
 		{
 			*op = (uint8_t) (( lc - 1 ) << 2 | 0 );
 			op++;
@@ -460,7 +462,7 @@ static inline uint8_t* lzav_write_fin( uint8_t* op, size_t lc,
 	{
 		size_t wc = lc - LZAV_LIT_FIN; // Leave literals for the final block.
 
-		if( wc < 16 )
+		if( wc < 1 + 15 )
 		{
 			*op = (uint8_t) (( wc - 1 ) << 2 | 0 );
 			op++;
@@ -496,14 +498,9 @@ static inline uint8_t* lzav_write_fin( uint8_t* op, size_t lc,
 	*op = (uint8_t) (( lc - 1 ) << 2 | 0 );
 	op++;
 
-	do
-	{
-		*op = *ipa;
-		ipa++;
-		op++;
-	} while( --lc != 0 );
+	memcpy( op, ipa, lc );
 
-	return( op );
+	return( op + lc );
 }
 
 /**
@@ -524,7 +521,12 @@ static inline int lzav_compress_bound( const int srcl )
 /**
  * Function performs in-memory data compression using the LZAV compression
  * algorithm and stream format. The function produces a "raw" compressed data,
- * without any header containing data length nor identifier nor checksum.
+ * without a header containing data length nor identifier nor checksum.
+ *
+ * Note that compression algorithm and its output on the same source data may
+ * differ between LZAV versions, and may differ on little- and big-endian
+ * systems. However, the decompression of a compressed data produced by any
+ * prior compressor version will stay possible.
  *
  * @param[in] src Source (uncompressed) data pointer, can be 0 if srcl==0.
  * Address alignment is unimportant.
@@ -651,7 +653,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 				memcpy( &ww1, wp, 4 );
 				memcpy( &ww2, wp + 4, 2 );
 
-				if( iw1 == ww1 && iw2 == ww2 )
+				if( LZAV_UNLIKELY( iw1 == ww1 && iw2 == ww2 ))
 				{
 					// Source data and hash-table entry match.
 
@@ -664,7 +666,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 					size_t ml = ( d > LZAV_REF_LEN ? LZAV_REF_LEN : d );
 
-					if( ip + ml > ipe )
+					if( LZAV_UNLIKELY( ip + ml > ipe ))
 					{
 						// Make sure LZAV_LIT_FIN literals remain on finish.
 
@@ -683,22 +685,19 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 						if( *ipl == *wpl )
 						{
-							rc = 1 + lzav_match_len( ipl + 1, wpl + 1,
-								ml - 1 );
+							const size_t rc2 = 1 + lzav_match_len( ipl + 1,
+								wpl + 1, ml - 1 );
 
-							if( rc < LZAV_REF_MIN )
+							if( rc2 >= LZAV_REF_MIN )
 							{
-								rc = 0;
-							}
-							else
-							{
+								rc = rc2;
 								ip -= lc;
 								lc = 0;
 							}
 						}
 					}
 
-					if( rc == 0 )
+					if( LZAV_LIKELY( rc == 0 ))
 					{
 						rc = LZAV_REF_MIN + lzav_match_len( ip + LZAV_REF_MIN,
 							wp + LZAV_REF_MIN, ml - LZAV_REF_MIN );
@@ -725,7 +724,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 					io = (uint32_t) ( ip - (const uint8_t*) src );
 					ip += 2 | rndb; // Use PRNG bit to dither match positions.
 					rndb = io & 1; // Delay to decorrelate from current match.
-					ip += ( mavg < 80000 ) + ( mavg < 40000 ); // More speed.
+					ip += ( mavg < 80000 ) + ( mavg < 40000 ) * 2; // Faster.
 					*hp = io;
 					continue;
 				}
@@ -886,7 +885,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 			}
 			else
 			{
-				if( LZAV_LIKELY(( bh & 1 ) == 0 ))
+				if(( bh & 1 ) == 0 )
 				{
 					cv = bh >> 6;
 					csh = 2;
@@ -947,7 +946,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 					ip += 4;
 				}
 				else
-				if( LZAV_LIKELY( bt == 1 ))
+				if( bt == 1 )
 				{
 					cc += ip[ 1 ];
 					LZAV_SET_IPD( bh >> 6 | ip[ 2 ] << 2 );
@@ -1009,7 +1008,8 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 				if( LZAV_LIKELY(( op < opet ) & ( ipe - ipd >= 48 )))
 				{
-					memcpy( op, ipd, 32 );
+					memcpy( op, ipd, 16 );
+					memcpy( op + 16, ipd + 16, 16 );
 					memcpy( op + 32, ipd + 32, 16 );
 
 					if( LZAV_LIKELY( cc <= 48 ))
@@ -1033,7 +1033,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 		// This copy-block is transformed into memcpy-alike instructions, by a
 		// modern compiler. Direct use of memcpy is slower, on average.
 
-		while( cc > 0 )
+		while( LZAV_LIKELY( cc > 0 ))
 		{
 			*op = *ipd;
 			ipd++;
