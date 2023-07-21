@@ -3,9 +3,9 @@
 ## Introduction ##
 
 LZAV is a fast general-purpose in-memory data compression algorithm based on
-now-classic [LZ77](https://ru.wikipedia.org/wiki/LZ77) data compression
-approach. LZAV holds a good position on the Pareto landscape of factors, among
-a wide selection of similar in-memory compression algorithms.
+now-classic [LZ77](https://wikipedia.org/wiki/LZ77_and_LZ78) lossless data
+compression method. LZAV holds a good position on the Pareto landscape of
+factors, among a wide selection of similar in-memory compression algorithms.
 
 LZAV algorithm's code is portable, scalar, header-only, inlineable C
 (C++ compatible). It supports little- and big-endian platforms, and any memory
@@ -14,11 +14,11 @@ Incompressible data expands by no more than 0.58%.
 
 LZAV does not sacrifice internal out-of-bounds (OOB) checks for decompression
 speed. This means that LZAV can be used in strict conditions where OOB memory
-writes (and especially reads) can lead to an application's crash. LZAV can be
-safely used to decompress malformed or damaged compressed data. This means
-that LZAV does not require calculation of checksum (or hash) of the compressed
-data. Only a checksum of uncompressed data may be required, depending on
-application's guarantees.
+writes (and especially reads) that lead to a trap, are unacceptable (e.g.,
+real-time, system, server software). LZAV can be safely used to decompress
+malformed or damaged compressed data. This means that LZAV does not require
+calculation of checksum (or hash) of the compressed data. Only a checksum of
+uncompressed data may be required, depending on application's guarantees.
 
 ## Usage Information ##
 
@@ -39,6 +39,7 @@ To decompress data:
 
     #include "lzav.h"
 
+    void* decomp_buf = malloc( src_len ); // Or similar.
     int l = lzav_decompress( comp_buf, decomp_buf, comp_len, src_len );
 
     if( l < 0 )
@@ -78,7 +79,7 @@ visit [lzbench](https://github.com/inikep/lzbench).
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 1.2**    |495 MB/s       |2770 MB/s      |41.84          |
+|**LZAV 1.3**    |505 MB/s       |2770 MB/s      |41.84          |
 |LZ4 1.9.2       |670 MB/s       |3950 MB/s      |47.60          |
 |LZF 3.6         |390 MB/s       |810 MB/s       |48.15          |
 
@@ -86,7 +87,7 @@ visit [lzbench](https://github.com/inikep/lzbench).
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 1.2**    |420 MB/s       |2480 MB/s      |41.84          |
+|**LZAV 1.3**    |420 MB/s       |2480 MB/s      |41.84          |
 |LZ4 1.9.2       |660 MB/s       |4200 MB/s      |47.60          |
 |LZF 3.6         |350 MB/s       |700 MB/s       |48.15          |
 
@@ -94,6 +95,6 @@ visit [lzbench](https://github.com/inikep/lzbench).
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 1.2**    |370 MB/s       |2100 MB/s      |41.84          |
+|**LZAV 1.3**    |370 MB/s       |2100 MB/s      |41.84          |
 |LZ4 1.9.2       |620 MB/s       |4300 MB/s      |47.60          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
