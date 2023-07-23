@@ -1,5 +1,5 @@
 /**
- * lzav.h version 1.4
+ * lzav.h version 1.5
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithm.
@@ -372,9 +372,9 @@ static inline uint8_t* lzav_write_blk( uint8_t* op, size_t lc, size_t rc,
 
 	rc -= mref;
 
-	if( d < ( 1 << 10 ))
+	if( LZAV_UNLIKELY( d < ( 1 << 10 )))
 	{
-		if( rc < 15 )
+		if( LZAV_LIKELY( rc < 15 ))
 		{
 		#if LZAV_LITTLE_ENDIAN
 			uint16_t ov = (uint16_t) ( d << 6 | rc << 2 | 1 );
@@ -398,9 +398,9 @@ static inline uint8_t* lzav_write_blk( uint8_t* op, size_t lc, size_t rc,
 		return( op + 3 );
 	}
 
-	if( d < ( 1 << 18 ))
+	if( LZAV_LIKELY( d < ( 1 << 18 )))
 	{
-		if( rc < 15 )
+		if( LZAV_LIKELY( rc < 15 ))
 		{
 			*op = (uint8_t) ( d << 6 | rc << 2 | 2 );
 
@@ -424,7 +424,7 @@ static inline uint8_t* lzav_write_blk( uint8_t* op, size_t lc, size_t rc,
 
 	*cbpp = op;
 
-	if( rc < 15 )
+	if( LZAV_LIKELY( rc < 15 ))
 	{
 		uint32_t ov = (uint32_t) ( d << 8 | rc << 2 | 3 );
 
@@ -547,8 +547,7 @@ static inline int lzav_compress_bound( const int srcl )
  */
 
 static inline int lzav_compress( const void* const src, void* const dst,
-	const int srcl, const int dstl, void* const ext_buf,
-	const int ext_bufl )
+	const int srcl, const int dstl, void* const ext_buf, const int ext_bufl )
 {
 	if( srcl <= 0 || src == 0 || dst == 0 || src == dst ||
 		dstl < lzav_compress_bound( srcl ))
@@ -615,6 +614,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 	int rndb = 0; // PRNG bit derived from the non-matching offset.
 
 	op++; // Advance beyond prefix byte.
+	ip += LZAV_REF_MIN; // Skip source bytes, to avoid OOB in rc2 match below.
 
 	while( LZAV_LIKELY( ip < ipet ))
 	{
@@ -634,11 +634,11 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 		const uint32_t ipo = (uint32_t) ( ip - (const uint8_t*) src );
 		uint32_t* const hp = (uint32_t*) ( ht + ( hval & hmask ));
-		const size_t wo = *hp; // Source data position associated with hash.
+		const uint32_t wpo = *hp; // Source data position associated with hash.
+		const uint8_t* const wp = (const uint8_t*) src + wpo; // At window ptr.
 
-		if( LZAV_LIKELY( wo != 0 ))
+		if( LZAV_LIKELY( wpo != 0 ))
 		{
-			const uint8_t* const wp = (const uint8_t*) src + wo;
 			size_t d = ip - wp; // Reference offset.
 
 			if( LZAV_UNLIKELY( d < 8 )) // Small offsets may be inefficient.
@@ -679,7 +679,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 					size_t lc = ip - ipa;
 					size_t rc = 0;
 
-					if( lc != 0 && lc < LZAV_REF_MIN && lc < wo )
+					if( lc != 0 && lc < LZAV_REF_MIN )
 					{
 						// Try to consume literals by finding a match at an
 						// earlier position.
@@ -906,7 +906,6 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 					if( LZAV_LIKELY(( op < opet ) & ( ipe - ipd >= 20 )))
 					{
 						memcpy( op, ipd, 16 );
-						memcpy( op + 16, ipd + 16, 4 );
 						op += cc;
 						continue;
 					}
@@ -950,9 +949,9 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 		// Handle large copy count blocks.
 
-		int bt; // Block type.
+		const int bt = bh & 3; // Block type.
 
-		if( LZAV_LIKELY(( bt = bh & 3 ) != 0 )) // True, if not type 0.
+		if( LZAV_LIKELY( bt != 0 )) // True, if not type 0.
 		{
 			cc += mref;
 

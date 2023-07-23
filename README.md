@@ -5,7 +5,7 @@
 LZAV is a fast general-purpose in-memory data compression algorithm based on
 now-classic [LZ77](https://wikipedia.org/wiki/LZ77_and_LZ78) lossless data
 compression method. LZAV holds a good position on the Pareto landscape of
-factors, among many similar in-memory compression algorithms.
+factors, among many similar in-memory (non-streaming) compression algorithms.
 
 LZAV algorithm's code is portable, scalar, header-only, inlineable C
 (C++ compatible). It supports little- and big-endian platforms, and any memory
@@ -82,7 +82,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 1.4**    |505 MB/s       |2760 MB/s      |41.84          |
+|**LZAV 1.5**    |505 MB/s       |2760 MB/s      |41.84          |
 |LZ4 1.9.2       |670 MB/s       |3950 MB/s      |47.60          |
 |LZF 3.6         |390 MB/s       |810 MB/s       |48.15          |
 
@@ -92,7 +92,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 1.4**    |425 MB/s       |2480 MB/s      |41.84          |
+|**LZAV 1.5**    |425 MB/s       |2500 MB/s      |41.84          |
 |LZ4 1.9.2       |660 MB/s       |4200 MB/s      |47.60          |
 |LZF 3.6         |350 MB/s       |700 MB/s       |48.15          |
 
@@ -102,6 +102,6 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 1.4**    |370 MB/s       |2050 MB/s      |41.84          |
+|**LZAV 1.5**    |375 MB/s       |2150 MB/s      |41.84          |
 |LZ4 1.9.2       |620 MB/s       |4300 MB/s      |47.60          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
