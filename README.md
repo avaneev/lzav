@@ -72,6 +72,7 @@ LZAV algorithm's geomean performance on a variety of datasets is 540 +/- 210
 MB/s compression and 3000 +/- 1000 MB/s decompression speeds, on 4+ GHz 64-bit
 processors released after 2019. Note that the algorithm exhibits adaptive
 qualities, and its actual performance depends on the data being compressed.
+LZAV may show an exceptional performance on your specific datasets.
 
 For a more comprehensive in-memory compression algorithms benchmark you may
 visit [lzbench](https://github.com/inikep/lzbench).
@@ -82,7 +83,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 1.5**    |505 MB/s       |2760 MB/s      |41.84          |
+|**LZAV 2.0**    |505 MB/s       |2860 MB/s      |41.84          |
 |LZ4 1.9.2       |670 MB/s       |3950 MB/s      |47.60          |
 |LZF 3.6         |390 MB/s       |810 MB/s       |48.15          |
 
@@ -92,7 +93,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 1.5**    |425 MB/s       |2500 MB/s      |41.84          |
+|**LZAV 2.0**    |425 MB/s       |2520 MB/s      |41.84          |
 |LZ4 1.9.2       |660 MB/s       |4200 MB/s      |47.60          |
 |LZF 3.6         |350 MB/s       |700 MB/s       |48.15          |
 
@@ -102,6 +103,6 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 1.5**    |375 MB/s       |2150 MB/s      |41.84          |
+|**LZAV 2.0**    |380 MB/s       |2080 MB/s      |41.84          |
 |LZ4 1.9.2       |620 MB/s       |4300 MB/s      |47.60          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
