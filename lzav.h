@@ -926,8 +926,8 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 					if( LZAV_LIKELY( op < opet ))
 					{
-						memcpy( op, ipd, 16 );
-						memcpy( op + 16, ipd + 16, 4 );
+						memmove( op, ipd, 16 );
+						memmove( op + 16, ipd + 16, 4 );
 						op += cc;
 						continue;
 					}
@@ -942,8 +942,8 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 					if( LZAV_LIKELY( op < opet ))
 					{
-						memcpy( op, ipd, 16 );
-						memcpy( op + 16, ipd + 16, 4 );
+						memmove( op, ipd, 16 );
+						memmove( op + 16, ipd + 16, 4 );
 						op += cc;
 						continue;
 					}
@@ -986,8 +986,8 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 					if( LZAV_LIKELY( op < opet ))
 					{
-						memcpy( op, ipd, 16 );
-						memcpy( op + 16, ipd + 16, 4 );
+						memmove( op, ipd, 16 );
+						memmove( op + 16, ipd + 16, 4 );
 						op += cc;
 						continue;
 					}
@@ -1049,10 +1049,10 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 			if( LZAV_LIKELY( op < opet ))
 			{
-				memcpy( op, ipd, 16 );
-				memcpy( op + 16, ipd + 16, 16 );
-				memcpy( op + 32, ipd + 32, 16 );
-				memcpy( op + 48, ipd + 48, 16 );
+				memmove( op, ipd, 16 );
+				memmove( op + 16, ipd + 16, 16 );
+				memmove( op + 32, ipd + 32, 16 );
+				memmove( op + 48, ipd + 48, 16 );
 
 				if( LZAV_LIKELY( cc <= 64 ))
 				{
