@@ -20,6 +20,11 @@ malformed or damaged compressed data. Which means that LZAV does not require
 calculation of a checksum (or hash) of the compressed data. Only a checksum
 of uncompressed data may be required, depending on application's guarantees.
 
+The internal functions available in the `lzav.h` file allow you to easily
+implement, and experiment with, your own compression algorithms. LZAV stream
+format and decompressor have a potential of very high decompression speeds,
+which depends on the way data is compressed.
+
 ## Usage Information ##
 
 To compress data:
@@ -52,7 +57,7 @@ To decompress data:
 The tables below present performance ballpark numbers of LZAV algorithm
 (based on Silesia dataset).
 
-While there LZ4 seems to be compressing faster, LZAV comparably provides 12%
+While there LZ4 seems to be compressing faster, LZAV comparably provides 14%
 memory storage cost savings. This is a significant benefit in database and
 file system use cases since CPUs rarely run at their maximum capacity anyway.
 In general, LZAV holds a very strong position in this class of data
@@ -62,11 +67,12 @@ maintainability: LZAV is maximally portable and has a rather small independent
 codebase.
 
 Performance of LZAV is not limited to the presented ballpark numbers.
-Depending on the data being compressed, LZAV can achieve 750 MB/s compression
-and 4100 MB/s decompression speeds. Incompressible data decompresses at 9000
+Depending on the data being compressed, LZAV can achieve 850 MB/s compression
+and 4500 MB/s decompression speeds. Incompressible data decompresses at 9300
 MB/s rate, which is not far from the "memcpy". There are cases like the
 [enwik9 dataset](https://mattmahoney.net/dc/textdata.html) where LZAV
-provides 22% higher memory storage savings compared to LZ4.
+provides 23% higher memory storage savings compared to LZ4. However, on very
+small files, compression ratio difference between LZAV and LZ4 diminishes.
 
 LZAV algorithm's geomean performance on a variety of datasets is 540 +/- 210
 MB/s compression and 3000 +/- 1000 MB/s decompression speeds, on 4+ GHz 64-bit
@@ -83,7 +89,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.0**    |505 MB/s       |2860 MB/s      |41.84          |
+|**LZAV 2.1**    |500 MB/s       |2820 MB/s      |41.63          |
 |LZ4 1.9.2       |670 MB/s       |3950 MB/s      |47.60          |
 |LZF 3.6         |390 MB/s       |810 MB/s       |48.15          |
 
@@ -93,7 +99,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.0**    |425 MB/s       |2520 MB/s      |41.84          |
+|**LZAV 2.1**    |430 MB/s       |2540 MB/s      |41.63          |
 |LZ4 1.9.2       |660 MB/s       |4200 MB/s      |47.60          |
 |LZF 3.6         |350 MB/s       |700 MB/s       |48.15          |
 
@@ -103,6 +109,6 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.0**    |380 MB/s       |2080 MB/s      |41.84          |
+|**LZAV 2.1**    |380 MB/s       |2100 MB/s      |41.63          |
 |LZ4 1.9.2       |620 MB/s       |4300 MB/s      |47.60          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
