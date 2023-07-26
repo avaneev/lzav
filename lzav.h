@@ -1,5 +1,5 @@
 /**
- * lzav.h version 2.1
+ * lzav.h version 2.2
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -281,7 +281,8 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
  *
  * Stream format 1.
  *
- * Block starts with a header byte, followed by several optional bytes.
+ * "Raw" compressed stream consists of any quantity of unnumerated "blocks".
+ * A block starts with a header byte, followed by several optional bytes.
  * Bits 4-5 of the header specify block's type.
  *
  * CC00LLLL: literal block (1-3 bytes). LLLL is literal length.
@@ -297,12 +298,16 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
  *
  * The overall compressed data is prefixed with a byte whose lower 4 bits
  * contain minimal reference length (mref), and the highest 4 bits contain
- * stream format identifier.
+ * stream format identifier. Compressed data always finishes with
+ * LZAV_LIT_LEN literals. The lzav_write_fin_1() function should be used to
+ * finalize compression.
  *
  * @param op Output buffer pointer.
  * @param lc Literal length, in bytes.
  * @param rc Reference length, in bytes, not lesser than mref.
- * @param d Reference offset, in bytes. Should be lesser than LZAV_WIN_LEN.
+ * @param d Reference offset, in bytes. Should be lesser than LZAV_WIN_LEN,
+ * and not lesser than rc since fast copy on decompression cannot provide
+ * consistency of copying of data that is not yet in the output.
  * @param ipa Literals anchor pointer.
  * @param cbpp Pointer to the pointer to the latest offset carry block header.
  * Cannot be 0, but the contained pointer can be 0.
@@ -349,7 +354,7 @@ static inline uint8_t* lzav_write_blk_1( uint8_t* op, size_t lc, size_t rc,
 			op += lc;
 		}
 		else
-		if( lc < 1 + 15 )
+		if( LZAV_LIKELY( lc < 1 + 15 ))
 		{
 			*op = (uint8_t) ( cv | lc );
 			op++;
@@ -358,7 +363,7 @@ static inline uint8_t* lzav_write_blk_1( uint8_t* op, size_t lc, size_t rc,
 			op += lc;
 		}
 		else
-		if( lc < 1 + 15 + 255 )
+		if( LZAV_LIKELY( lc < 1 + 15 + 255 ))
 		{
 		#if LZAV_LITTLE_ENDIAN
 			uint16_t ov = (uint16_t) (( lc - 1 - 15 ) << 8 | cv );
@@ -370,16 +375,17 @@ static inline uint8_t* lzav_write_blk_1( uint8_t* op, size_t lc, size_t rc,
 			op += 2;
 
 			memcpy( op, ipa, 16 );
+			memcpy( op + 16, ipa + 16, 8 );
 
-			if( lc < 17 )
+			if( lc < 25 )
 			{
 				op += lc;
 			}
 			else
 			{
-				ipa += 16;
-				op += 16;
-				lc -= 16;
+				ipa += 24;
+				op += 24;
+				lc -= 24;
 
 				do
 				{
@@ -986,8 +992,8 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 					if( LZAV_LIKELY( op < opet ))
 					{
-						memcpy( op, ipd, 16 );
-						memcpy( op + 16, ipd + 16, 4 );
+						memmove( op, ipd, 16 );
+						memmove( op + 16, ipd + 16, 4 );
 						op += cc;
 						continue;
 					}

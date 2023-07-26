@@ -78,7 +78,7 @@ LZAV algorithm's geomean performance on a variety of datasets is 540 +/- 210
 MB/s compression and 3000 +/- 1000 MB/s decompression speeds, on 4+ GHz 64-bit
 processors released after 2019. Note that the algorithm exhibits adaptive
 qualities, and its actual performance depends on the data being compressed.
-LZAV may show an exceptional performance on your specific datasets.
+LZAV may show an exceptional performance on your specific data.
 
 For a more comprehensive in-memory compression algorithms benchmark you may
 visit [lzbench](https://github.com/inikep/lzbench).
@@ -89,7 +89,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.1**    |500 MB/s       |2820 MB/s      |41.63          |
+|**LZAV 2.2**    |505 MB/s       |2870 MB/s      |41.63          |
 |LZ4 1.9.2       |670 MB/s       |3950 MB/s      |47.60          |
 |LZF 3.6         |390 MB/s       |810 MB/s       |48.15          |
 
@@ -99,7 +99,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.1**    |430 MB/s       |2540 MB/s      |41.63          |
+|**LZAV 2.2**    |435 MB/s       |2490 MB/s      |41.63          |
 |LZ4 1.9.2       |660 MB/s       |4200 MB/s      |47.60          |
 |LZF 3.6         |350 MB/s       |700 MB/s       |48.15          |
 
@@ -109,6 +109,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.1**    |380 MB/s       |2100 MB/s      |41.63          |
+|**LZAV 2.2**    |380 MB/s       |2100 MB/s      |41.63          |
 |LZ4 1.9.2       |620 MB/s       |4300 MB/s      |47.60          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
+
+## Thanks ##
+
+* [Paul Dreik](https://github.com/pauldreik), for finding memcpy UB in
+block type 1.
