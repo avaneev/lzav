@@ -89,7 +89,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.2**    |505 MB/s       |2870 MB/s      |41.63          |
+|**LZAV 2.3**    |505 MB/s       |2830 MB/s      |41.63          |
 |LZ4 1.9.2       |670 MB/s       |3950 MB/s      |47.60          |
 |LZF 3.6         |390 MB/s       |810 MB/s       |48.15          |
 
@@ -99,7 +99,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.2**    |435 MB/s       |2490 MB/s      |41.63          |
+|**LZAV 2.3**    |435 MB/s       |2480 MB/s      |41.63          |
 |LZ4 1.9.2       |660 MB/s       |4200 MB/s      |47.60          |
 |LZF 3.6         |350 MB/s       |700 MB/s       |48.15          |
 
@@ -109,11 +109,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.2**    |380 MB/s       |2100 MB/s      |41.63          |
+|**LZAV 2.3**    |380 MB/s       |2100 MB/s      |41.63          |
 |LZ4 1.9.2       |620 MB/s       |4300 MB/s      |47.60          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
 
 ## Thanks ##
 
-* [Paul Dreik](https://github.com/pauldreik), for finding memcpy UB in
-block type 1.
+* [Paul Dreik](https://github.com/pauldreik), for finding memcpy UB in the
+decompressor.
