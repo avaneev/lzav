@@ -71,8 +71,9 @@ Depending on the data being compressed, LZAV can achieve 850 MB/s compression
 and 4500 MB/s decompression speeds. Incompressible data decompresses at 9300
 MB/s rate, which is not far from the "memcpy". There are cases like the
 [enwik9 dataset](https://mattmahoney.net/dc/textdata.html) where LZAV
-provides 23% higher memory storage savings compared to LZ4. However, on very
-small files, compression ratio difference between LZAV and LZ4 diminishes.
+provides 23% higher memory storage savings compared to LZ4. However, on small
+files (below 50 KB), compression ratio difference between LZAV and LZ4
+diminishes, and LZ4 may have an advantage.
 
 LZAV algorithm's geomean performance on a variety of datasets is 540 +/- 210
 MB/s compression and 3000 +/- 1000 MB/s decompression speeds, on 4+ GHz 64-bit
@@ -89,7 +90,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.3**    |505 MB/s       |2830 MB/s      |41.63          |
+|**LZAV 2.4**    |505 MB/s       |2840 MB/s      |41.58          |
 |LZ4 1.9.2       |670 MB/s       |3950 MB/s      |47.60          |
 |LZF 3.6         |390 MB/s       |810 MB/s       |48.15          |
 
@@ -99,7 +100,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.3**    |435 MB/s       |2480 MB/s      |41.63          |
+|**LZAV 2.4**    |435 MB/s       |2480 MB/s      |41.58          |
 |LZ4 1.9.2       |660 MB/s       |4200 MB/s      |47.60          |
 |LZF 3.6         |350 MB/s       |700 MB/s       |48.15          |
 
@@ -109,7 +110,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.3**    |380 MB/s       |2100 MB/s      |41.63          |
+|**LZAV 2.4**    |390 MB/s       |2100 MB/s      |41.58          |
 |LZ4 1.9.2       |620 MB/s       |4300 MB/s      |47.60          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
 
