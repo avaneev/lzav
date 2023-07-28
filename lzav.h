@@ -1,5 +1,5 @@
 /**
- * lzav.h version 2.4
+ * lzav.h version 2.5
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -662,7 +662,8 @@ static inline int lzav_compress( const void* const src, void* const dst,
 	const uint8_t* ipa = ip; // Literals anchor pointer.
 	uint8_t* op = (uint8_t*) dst; // Destination (compressed data) pointer.
 	uint8_t* cbp = 0; // Pointer to the latest offset carry block header.
-	int mavg = 100 << 16; // Running average of hash match percentage (*2^16).
+	int mavg = 6 << 22; // Running average of hash match rate (*2^16).
+		// Two-factor average: success (0-64) by average reference length.
 	int rndb = 0; // PRNG bit derived from the non-matching offset.
 
 	ip += LZAV_REF_MIN; // Skip source bytes, to avoid OOB in rc2 match below.
@@ -767,21 +768,26 @@ static inline int lzav_compress( const void* const src, void* const dst,
 			op = lzav_write_blk_1( op, lc, rc, d, ipa, &cbp, LZAV_REF_MIN );
 			ip += rc;
 			ipa = ip;
-			mavg += (( 100 << 16 ) - mavg ) >> 10; // Increase match rate.
+			mavg += (( (int) rc << 22 ) - mavg ) >> 10;
 			continue;
 		}
 
-		mavg -= mavg >> 10; // Decrease match rate.
+		mavg -= mavg >> 10;
 
-		if( mavg < ( 12 << 16 ) && ip != ipa ) // 12% match rate threshold.
+		if( mavg < ( 100 << 15 ) && ip != ipa ) // Speed-up threshold.
 		{
 			// Compression speed-up technique that keeps the number of hash
 			// evaluations around 45% of compressed data length. In some cases
 			// reduces the number of blocks by several percent.
 
-			if( mavg < 6 << 16 )
+			if( LZAV_UNLIKELY( mavg < 60 << 15 ))
 			{
-				ip += ( 6 - ( mavg >> 16 )) * 4; // Gradually faster.
+				ip++;
+
+				if( LZAV_UNLIKELY( mavg < 45 << 15 ))
+				{
+					ip += 45 - ( mavg >> 15 ); // Gradually faster.
+				}
 			}
 
 			ip += 2 | rndb; // Use PRNG bit to dither match positions.
