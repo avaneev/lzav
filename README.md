@@ -81,9 +81,9 @@ processors released after 2019. Note that the algorithm exhibits adaptive
 qualities, and its actual performance depends on the data being compressed.
 LZAV may show an exceptional performance on your specific data.
 
-It is also worth noting that LZ77-based compression methods like LZAV and LZ4
-usually have an advantage over dictionary- and entropy-based coding in that
-hash-table-based compression has a very small overhead while LZ77-alike
+It is also worth noting that compression methods like LZAV and LZ4 usually
+have an advantage over dictionary- and entropy-based coding in that
+hash-table-based compression has a very small overhead while classic LZ77
 decompression has none at all - this is especially relevant for smaller data.
 
 For a more comprehensive in-memory compression algorithms benchmark you may
@@ -95,7 +95,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.5**    |505 MB/s       |2840 MB/s      |41.45          |
+|**LZAV 2.6**    |500 MB/s       |2930 MB/s      |41.46          |
 |LZ4 1.9.2       |670 MB/s       |3950 MB/s      |47.60          |
 |LZF 3.6         |390 MB/s       |810 MB/s       |48.15          |
 
@@ -105,7 +105,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.5**    |435 MB/s       |2470 MB/s      |41.45          |
+|**LZAV 2.6**    |430 MB/s       |2620 MB/s      |41.46          |
 |LZ4 1.9.2       |660 MB/s       |4200 MB/s      |47.60          |
 |LZF 3.6         |350 MB/s       |700 MB/s       |48.15          |
 
@@ -115,7 +115,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.5**    |390 MB/s       |2100 MB/s      |41.45          |
+|**LZAV 2.6**    |400 MB/s       |2100 MB/s      |41.46          |
 |LZ4 1.9.2       |620 MB/s       |4300 MB/s      |47.60          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
 

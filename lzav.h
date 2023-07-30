@@ -1,5 +1,5 @@
 /**
- * lzav.h version 2.5
+ * lzav.h version 2.6
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -149,8 +149,9 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 	const uint8_t* const p1s = p1;
 	const uint8_t* const p1e = p1 + ml;
 
-	#if defined( _WIN64 ) || defined( __x86_64__ ) || defined( __ppc64__ ) || \
-		defined( __aarch64__ ) || defined( __arm64__ )
+	#if defined( _WIN64 ) || defined( _M_X64 ) || defined( __x86_64__ ) || \
+		defined( __aarch64__ ) || defined( __arm64__ ) || \
+		defined( __ppc64__ ) || defined( __ia64__ )
 
 		while( LZAV_LIKELY( p1 + 7 < p1e ))
 		{
@@ -780,7 +781,11 @@ static inline int lzav_compress( const void* const src, void* const dst,
 			// evaluations around 45% of compressed data length. In some cases
 			// reduces the number of blocks by several percent.
 
-			if( LZAV_UNLIKELY( mavg < 60 << 15 ))
+			ip += 2 | rndb; // Use PRNG bit to dither match positions.
+			rndb = ipo & 1; // Delay to decorrelate from current match.
+			*hp = wpo;
+
+			if( LZAV_UNLIKELY( mavg < 65 << 15 ))
 			{
 				ip++;
 
@@ -790,9 +795,6 @@ static inline int lzav_compress( const void* const src, void* const dst,
 				}
 			}
 
-			ip += 2 | rndb; // Use PRNG bit to dither match positions.
-			rndb = ipo & 1; // Delay to decorrelate from current match.
-			*hp = wpo;
 			continue;
 		}
 
@@ -888,10 +890,10 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 	uint8_t* op = (uint8_t*) dst; // Destination (decompressed data) pointer.
 	uint8_t* const ope = op + dstl; // Destination boundary pointer.
 	uint8_t* const opet = ope - 63; // Threshold for fast copy to destination.
-	const int mref1 = ( *ip & 15 ) - 1; // Minimal reference length in use - 1.
+	const size_t mref1 = ( *ip & 15 ) - 1; // Minimal reference length - 1.
+	size_t bh = 0; // Current block header, updated in each branch.
 	size_t cv = 0; // Reference offset carry value.
 	int csh = 0; // Reference offset carry shift.
-	int bh = 0; // Current block header, updated in each branch.
 
 	#define LZAV_LOAD16( a ) \
 		uint16_t bv; \
@@ -926,63 +928,32 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 	while( LZAV_LIKELY( ip < ipet ))
 	{
-		const uint8_t* ipd; // Reference or source data pointer.
-		int cc = bh & 15; // Byte copy count.
-
-		if( LZAV_LIKELY( cc != 0 )) // True, if no additional length byte.
+		if( LZAV_UNLIKELY(( bh & 0x30 ) == 0 )) // Block type 0.
 		{
-			if(( bh & 32 ) != 0 ) // True, if block type 2 or 3.
-			{
-				cc += mref1;
+			const uint8_t* ipd; // Source data pointer.
+			cv = bh >> 6;
+			csh = 2;
+			size_t cc = bh & 15; // Byte copy count.
 
-				if( LZAV_LIKELY(( bh & 16 ) == 0 )) // True, if block type 2.
+			if( LZAV_LIKELY( cc != 0 )) // True, if no additional length byte.
+			{
+				ip++;
+				ipd = ip;
+				ip += cc;
+
+				if( LZAV_LIKELY( ip < ipe ))
 				{
-					LZAV_LOAD16( ip + 1 );
-					LZAV_SET_IPD( bh >> 6 | bv << 2, 16 );
-					ip += 3;
 					bh = *ip;
 
-					if( LZAV_LIKELY( op < opet ))
+					if( LZAV_LIKELY(( op < opet ) & ( ipe - ipd >= 16 )))
 					{
 						memcpy( op, ipd, 16 );
-						memcpy( op + 16, ipd + 16, 4 );
 						op += cc;
 						continue;
 					}
 				}
-				else // Block type 3.
+				else
 				{
-					LZAV_SET_IPD_CV( ip[ 1 ] | ip[ 2 ] << 8 | ip[ 3 ] << 16,
-						bh >> 6, 2, 16 );
-
-					ip += 4;
-					bh = *ip;
-
-					if( LZAV_LIKELY( op < opet ))
-					{
-						memcpy( op, ipd, 16 );
-						memcpy( op + 16, ipd + 16, 4 );
-						op += cc;
-						continue;
-					}
-				}
-			}
-			else
-			{
-				if(( bh & 16 ) == 0 ) // True, if block type 0.
-				{
-					cv = bh >> 6;
-					csh = 2;
-
-					ip++;
-					ipd = ip;
-					ip += cc;
-
-					if( LZAV_LIKELY( ip < ipe ))
-					{
-						bh = *ip;
-					}
-					else
 					if( LZAV_UNLIKELY( ip > ipe ))
 					{
 						return( LZAV_E_SRCOOB );
@@ -995,21 +966,43 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 						continue;
 					}
 				}
-				else // Block type 1.
-				{
-					cc += mref1;
-					LZAV_SET_IPD( bh >> 6 | ip[ 1 ] << 2, 8 );
-					ip += 2;
-					bh = *ip;
+			}
+			else
+			{
+				LZAV_LOAD16( ip + 1 );
 
-					if( LZAV_LIKELY( op < opet ))
+				const int l2 = bv & 0xFF;
+				const int lb = ( l2 == 255 );
+				cc = 16 + l2 + (( bv >> 8 ) & ( 0x100 - lb ));
+				ip += 2 + lb;
+				ipd = ip;
+				ip += cc;
+
+				if( LZAV_LIKELY( ip < ipe ))
+				{
+					bh = *ip;
+				}
+				else
+				if( LZAV_UNLIKELY( ip > ipe ))
+				{
+					return( LZAV_E_SRCOOB );
+				}
+
+				if( LZAV_LIKELY(( op < opet ) & ( ipe - ipd >= 48 )))
+				{
+					memcpy( op, ipd, 16 );
+					memcpy( op + 16, ipd + 16, 16 );
+					memcpy( op + 32, ipd + 32, 16 );
+
+					if( LZAV_LIKELY( cc <= 48 ))
 					{
-						memcpy( op, ipd, 8 );
-						memcpy( op + 8, ipd + 8, 8 );
-						memcpy( op + 16, ipd + 16, 4 );
 						op += cc;
 						continue;
 					}
+
+					ipd += 48;
+					op += 48;
+					cc -= 48;
 				}
 			}
 
@@ -1033,15 +1026,85 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 			continue;
 		}
 
+		const uint8_t* ipd; // Reference data pointer.
+		size_t cc = bh & 15; // Byte copy count.
+
+		if( LZAV_LIKELY( cc != 0 )) // True, if no additional length byte.
+		{
+			cc += mref1;
+
+			if( LZAV_LIKELY(( bh & 32 ) != 0 )) // True, if block type 2 or 3.
+			{
+				if( LZAV_LIKELY(( bh & 16 ) == 0 )) // True, if block type 2.
+				{
+					LZAV_LOAD16( ip + 1 );
+					LZAV_SET_IPD( bh >> 6 | bv << 2, 16 );
+					ip += 3;
+					bh = *ip;
+
+					if( LZAV_LIKELY( op < opet ))
+					{
+						memcpy( op, ipd, 16 );
+						memcpy( op + 16, ipd + 16, 4 );
+						op += cc;
+						continue;
+					}
+				}
+				else // Block type 3.
+				{
+					LZAV_LOAD32( ip + 1 );
+					LZAV_SET_IPD_CV( bv & 0xFFFFFF, bh >> 6, 2, 16 );
+					ip += 4;
+					bh = bv >> 24;
+
+					if( LZAV_LIKELY( op < opet ))
+					{
+						memcpy( op, ipd, 16 );
+						memcpy( op + 16, ipd + 16, 4 );
+						op += cc;
+						continue;
+					}
+				}
+			}
+			else // Block type 1.
+			{
+				LZAV_SET_IPD( bh >> 6 | ip[ 1 ] << 2, 8 );
+				ip += 2;
+				bh = *ip;
+
+				if( LZAV_LIKELY( op < opet ))
+				{
+					memcpy( op, ipd, 8 );
+					memcpy( op + 8, ipd + 8, 8 );
+					memcpy( op + 16, ipd + 16, 4 );
+					op += cc;
+					continue;
+				}
+			}
+
+			if( LZAV_UNLIKELY( op + cc > ope ))
+			{
+				return( LZAV_E_DSTOOB );
+			}
+
+			while( cc > 0 )
+			{
+				*op = *ipd;
+				ipd++;
+				op++;
+				cc--;
+			}
+
+			continue;
+		}
+
 		// Handle large copy count blocks.
 
-		const int bt = bh & 0x30; // Block type (bits 4-5).
+		cc = 16 + mref1;
 
-		if( LZAV_LIKELY( bt != 0 )) // True, if not type 0.
+		if( LZAV_LIKELY(( bh & 32 ) != 0 )) // True, if block type 2 or 3.
 		{
-			cc = 16 + mref1;
-
-			if( LZAV_LIKELY( bt == 32 )) // Block type 2.
+			if( LZAV_LIKELY(( bh & 16 ) == 0 )) // True, if block type 2.
 			{
 				LZAV_LOAD32( ip + 1 );
 				LZAV_SET_IPD( bh >> 6 | ( bv & 0xFFFF ) << 2, 16 );
@@ -1049,80 +1112,39 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 				ip += 4;
 				bh = bv >> 24;
 			}
-			else
-			if( LZAV_LIKELY( bt == 16 )) // Block type 1.
-			{
-				LZAV_SET_IPD( bh >> 6 | ip[ 1 ] << 2, 16 );
-				cc += ip[ 2 ];
-				ip += 3;
-				bh = *ip;
-			}
-			else
+			else // Block type 3.
 			{
 				LZAV_LOAD32( ip + 1 );
-				LZAV_SET_IPD_CV(( bv & 0xFFFFFF ), bh >> 6, 2, 16 );
+				LZAV_SET_IPD_CV( bv & 0xFFFFFF, bh >> 6, 2, 16 );
 				cc += bv >> 24;
 				ip += 5;
 				bh = *ip;
 			}
-
-			if( LZAV_LIKELY( op < opet ))
-			{
-				memcpy( op, ipd, 16 );
-				memcpy( op + 16, ipd + 16, 16 );
-				memcpy( op + 32, ipd + 32, 16 );
-				memcpy( op + 48, ipd + 48, 16 );
-
-				if( LZAV_LIKELY( cc <= 64 ))
-				{
-					op += cc;
-					continue;
-				}
-
-				ipd += 64;
-				op += 64;
-				cc -= 64;
-			}
 		}
-		else // Block type 0.
+		else // Block type 1.
 		{
-			LZAV_LOAD16( ip + 1 );
-			cv = bh >> 6;
-			csh = 2;
+			LZAV_SET_IPD( bh >> 6 | ip[ 1 ] << 2, 16 );
+			cc += ip[ 2 ];
+			ip += 3;
+			bh = *ip;
+		}
 
-			const int l2 = bv & 0xFF;
-			const int lb = ( l2 == 255 );
-			cc = 16 + l2 + (( bv >> 8 ) & ( 0x100 - lb ));
-			ip += 2 + lb;
-			ipd = ip;
-			ip += cc;
+		if( LZAV_LIKELY( op < opet ))
+		{
+			memcpy( op, ipd, 16 );
+			memcpy( op + 16, ipd + 16, 16 );
+			memcpy( op + 32, ipd + 32, 16 );
+			memcpy( op + 48, ipd + 48, 16 );
 
-			if( LZAV_LIKELY( ip < ipe ))
+			if( LZAV_LIKELY( cc <= 64 ))
 			{
-				bh = *ip;
-			}
-			else
-			if( LZAV_UNLIKELY( ip > ipe ))
-			{
-				return( LZAV_E_SRCOOB );
+				op += cc;
+				continue;
 			}
 
-			if( LZAV_LIKELY(( op < opet ) & ( ipe - ipd >= 48 )))
-			{
-				memcpy( op, ipd, 16 );
-				memcpy( op + 16, ipd + 16, 16 );
-				memcpy( op + 32, ipd + 32, 16 );
-
-				if( LZAV_LIKELY( cc <= 48 ))
-				{
-					op += cc;
-					continue;
-				}
-
-				ipd += 48;
-				op += 48;
-				cc -= 48;
-			}
+			ipd += 64;
+			op += 64;
+			cc -= 64;
 		}
 
 		if( LZAV_UNLIKELY( op + cc > ope ))
