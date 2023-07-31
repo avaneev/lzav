@@ -1,5 +1,5 @@
 /**
- * lzav.h version 2.6
+ * lzav.h version 2.7
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -648,6 +648,8 @@ static inline int lzav_compress( const void* const src, void* const dst,
 		}
 	}
 
+	// Initialize the hash-table.
+
 	uint32_t* const ht32 = (uint32_t*) ht;
 	int i;
 
@@ -692,13 +694,54 @@ static inline int lzav_compress( const void* const src, void* const dst,
 		uint32_t wpo = *hp; // Source data position associated with hash.
 		const uint32_t wpo0 = wpo; // The highest bit is a "match" flag.
 		wpo &= 0x7FFFFFFF; // Obtain the offset.
+		const uint8_t* const wp = (const uint8_t*) src + wpo; // At window ptr.
+
+		memcpy( &ww1, wp, 4 );
+		memcpy( &ww2, wp + 4, 2 );
+
+		if( LZAV_LIKELY( iw1 != ww1 || iw2 != ww2 ))
+		{
+			if(( wpo0 & 0x80000000 ) == 0 ) // No "match" flag - replace item.
+			{
+				wpo = ipo;
+			}
+
+			*hp = wpo;
+			mavg -= mavg >> 10;
+
+			if( mavg < ( 100 << 15 ) && ip != ipa ) // Speed-up threshold.
+			{
+				// Compression speed-up technique that keeps the number of
+				// hash evaluations around 45% of compressed data length. In
+				// some cases reduces the number of blocks by several percent.
+
+				ip += 2 | rndb; // Use PRNG bit to dither match positions.
+				rndb = ipo & 1; // Delay to decorrelate from current match.
+
+				if( LZAV_UNLIKELY( mavg < 65 << 15 ))
+				{
+					ip++;
+
+					if( LZAV_UNLIKELY( mavg < 45 << 15 ))
+					{
+						ip += 45 - ( mavg >> 15 ); // Gradually faster.
+					}
+				}
+
+				continue;
+			}
+
+			ip++;
+			continue;
+		}
+
 		const size_t d = ipo - wpo; // Reference offset.
 
 		if( LZAV_UNLIKELY(( d < 8 ) | ( d >= LZAV_WIN_LEN )))
 		{
 			// Small offsets may be inefficient and UB.
 
-			if( d >= 8 )
+			if( LZAV_UNLIKELY( d >= 8 ))
 			{
 				*hp = ipo;
 			}
@@ -707,99 +750,57 @@ static inline int lzav_compress( const void* const src, void* const dst,
 			continue;
 		}
 
-		const uint8_t* const wp = (const uint8_t*) src + wpo; // At window ptr.
+		// Source data and hash-table entry match.
 
-		if(( wpo0 & 0x80000000 ) == 0 ) // Replace item, if no "match" flag.
+		if( LZAV_LIKELY( d > LZAV_REF_LEN ))
 		{
-			wpo = ipo;
+			// Update a matching entry which is not inside max reference
+			// length's range. Otherwise, source data consisting of same-byte
+			// runs won't compress well. Set the "match" flag so that this
+			// "useful" offset remains in the hash-table longer.
+
+			*hp = ipo | 0x80000000;
 		}
 
-		memcpy( &ww1, wp, 4 );
-		memcpy( &ww2, wp + 4, 2 );
+		// Disallow overlapped reference copy.
 
-		if( LZAV_UNLIKELY( iw1 == ww1 && iw2 == ww2 ))
+		size_t ml = ( d > LZAV_REF_LEN ? LZAV_REF_LEN : d );
+
+		if( LZAV_UNLIKELY( ip + ml > ipe ))
 		{
-			// Source data and hash-table entry match.
+			// Make sure LZAV_LIT_FIN literals remain on finish.
 
-			if( LZAV_LIKELY( d > LZAV_REF_LEN ))
-			{
-				// Update a matching entry which is not inside max reference
-				// length's range. Otherwise, source data consisting of
-				// same-byte runs won't compress well. Set the "match" flag so
-				// that this "useful" offset remains in the hash-table longer.
-
-				*hp = ipo | 0x80000000;
-			}
-
-			// Disallow overlapped reference copy.
-
-			size_t ml = ( d > LZAV_REF_LEN ? LZAV_REF_LEN : d );
-
-			if( LZAV_UNLIKELY( ip + ml > ipe ))
-			{
-				// Make sure LZAV_LIT_FIN literals remain on finish.
-
-				ml = ipe - ip;
-			}
-
-			size_t lc = ip - ipa;
-			size_t rc = 0;
-
-			if( lc != 0 && lc < LZAV_REF_MIN )
-			{
-				// Try to consume literals by finding a match at an
-				// earlier position.
-
-				const size_t rc2 = lzav_match_len( ip - lc, wp - lc, ml );
-
-				if( rc2 >= LZAV_REF_MIN )
-				{
-					rc = rc2;
-					ip -= lc;
-					lc = 0;
-				}
-			}
-
-			if( LZAV_LIKELY( rc == 0 ))
-			{
-				rc = LZAV_REF_MIN + lzav_match_len( ip + LZAV_REF_MIN,
-					wp + LZAV_REF_MIN, ml - LZAV_REF_MIN );
-			}
-
-			op = lzav_write_blk_1( op, lc, rc, d, ipa, &cbp, LZAV_REF_MIN );
-			ip += rc;
-			ipa = ip;
-			mavg += (( (int) rc << 22 ) - mavg ) >> 10;
-			continue;
+			ml = ipe - ip;
 		}
 
-		mavg -= mavg >> 10;
+		size_t lc = ip - ipa;
+		size_t rc = 0;
 
-		if( mavg < ( 100 << 15 ) && ip != ipa ) // Speed-up threshold.
+		if( lc != 0 && lc < LZAV_REF_MIN )
 		{
-			// Compression speed-up technique that keeps the number of hash
-			// evaluations around 45% of compressed data length. In some cases
-			// reduces the number of blocks by several percent.
+			// Try to consume literals by finding a match at an earlier
+			// position.
 
-			ip += 2 | rndb; // Use PRNG bit to dither match positions.
-			rndb = ipo & 1; // Delay to decorrelate from current match.
-			*hp = wpo;
+			const size_t rc2 = lzav_match_len( ip - lc, wp - lc, ml );
 
-			if( LZAV_UNLIKELY( mavg < 65 << 15 ))
+			if( rc2 >= LZAV_REF_MIN )
 			{
-				ip++;
-
-				if( LZAV_UNLIKELY( mavg < 45 << 15 ))
-				{
-					ip += 45 - ( mavg >> 15 ); // Gradually faster.
-				}
+				rc = rc2;
+				ip -= lc;
+				lc = 0;
 			}
-
-			continue;
 		}
 
-		*hp = wpo;
-		ip++;
+		if( LZAV_LIKELY( rc == 0 ))
+		{
+			rc = LZAV_REF_MIN + lzav_match_len( ip + LZAV_REF_MIN,
+				wp + LZAV_REF_MIN, ml - LZAV_REF_MIN );
+		}
+
+		op = lzav_write_blk_1( op, lc, rc, d, ipa, &cbp, LZAV_REF_MIN );
+		ip += rc;
+		ipa = ip;
+		mavg += (( (int) rc << 22 ) - mavg ) >> 10;
 	}
 
 	if( alloc_buf != 0 )
@@ -905,7 +906,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 		memcpy( &bv, a, 4 ); \
 		LZAV_IEC32( bv );
 
-	#define LZAV_SET_IPD_CV( x, v, sh, md ) \
+	#define LZAV_SET_IPD_CV( x, md, v, sh ) \
 		size_t d = ( x ) << csh; \
 		if( LZAV_UNLIKELY( d < md )) \
 			return( LZAV_E_REFOOB ); \
@@ -917,7 +918,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 		csh = ( sh );
 
 	#define LZAV_SET_IPD( x, md ) \
-		LZAV_SET_IPD_CV( x, 0, 0, md )
+		LZAV_SET_IPD_CV( x, md, 0, 0 )
 
 	ip++; // Advance beyond prefix byte.
 
@@ -1026,11 +1027,11 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 			continue;
 		}
 
-		const uint8_t* ipd; // Reference data pointer.
 		size_t cc = bh & 15; // Byte copy count.
 
 		if( LZAV_LIKELY( cc != 0 )) // True, if no additional length byte.
 		{
+			const uint8_t* ipd; // Reference data pointer.
 			cc += mref1;
 
 			if( LZAV_LIKELY(( bh & 32 ) != 0 )) // True, if block type 2 or 3.
@@ -1053,7 +1054,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 				else // Block type 3.
 				{
 					LZAV_LOAD32( ip + 1 );
-					LZAV_SET_IPD_CV( bv & 0xFFFFFF, bh >> 6, 2, 16 );
+					LZAV_SET_IPD_CV( bv & 0xFFFFFF, 16, bh >> 6, 2 );
 					ip += 4;
 					bh = bv >> 24;
 
@@ -1100,6 +1101,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 		// Handle large copy count blocks.
 
+		const uint8_t* ipd; // Reference data pointer.
 		cc = 16 + mref1;
 
 		if( LZAV_LIKELY(( bh & 32 ) != 0 )) // True, if block type 2 or 3.
@@ -1115,7 +1117,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 			else // Block type 3.
 			{
 				LZAV_LOAD32( ip + 1 );
-				LZAV_SET_IPD_CV( bv & 0xFFFFFF, bh >> 6, 2, 16 );
+				LZAV_SET_IPD_CV( bv & 0xFFFFFF, 16, bh >> 6, 2 );
 				cc += bv >> 24;
 				ip += 5;
 				bh = *ip;

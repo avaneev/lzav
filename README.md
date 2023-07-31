@@ -68,7 +68,7 @@ codebase.
 
 Performance of LZAV is not limited to the presented ballpark numbers.
 Depending on the data being compressed, LZAV can achieve 850 MB/s compression
-and 4500 MB/s decompression speeds. Incompressible data decompresses at 9300
+and 4500 MB/s decompression speeds. Incompressible data decompresses at 9500
 MB/s rate, which is not far from the "memcpy". There are cases like the
 [enwik9 dataset](https://mattmahoney.net/dc/textdata.html) where LZAV
 provides 23% higher memory storage savings compared to LZ4. However, on small
@@ -95,7 +95,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.6**    |500 MB/s       |2930 MB/s      |41.46          |
+|**LZAV 2.7**    |500 MB/s       |2920 MB/s      |41.46          |
 |LZ4 1.9.2       |670 MB/s       |3950 MB/s      |47.60          |
 |LZF 3.6         |390 MB/s       |810 MB/s       |48.15          |
 
@@ -105,7 +105,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.6**    |430 MB/s       |2620 MB/s      |41.46          |
+|**LZAV 2.7**    |435 MB/s       |2640 MB/s      |41.46          |
 |LZ4 1.9.2       |660 MB/s       |4200 MB/s      |47.60          |
 |LZF 3.6         |350 MB/s       |700 MB/s       |48.15          |
 
@@ -115,7 +115,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.6**    |400 MB/s       |2100 MB/s      |41.46          |
+|**LZAV 2.7**    |400 MB/s       |2200 MB/s      |41.46          |
 |LZ4 1.9.2       |620 MB/s       |4300 MB/s      |47.60          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
 
