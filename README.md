@@ -67,16 +67,16 @@ maintainability: LZAV is maximally portable and has a rather small independent
 codebase.
 
 Performance of LZAV is not limited to the presented ballpark numbers.
-Depending on the data being compressed, LZAV can achieve 850 MB/s compression
+Depending on the data being compressed, LZAV can achieve 800 MB/s compression
 and 4500 MB/s decompression speeds. Incompressible data decompresses at 9500
 MB/s rate, which is not far from the "memcpy". There are cases like the
 [enwik9 dataset](https://mattmahoney.net/dc/textdata.html) where LZAV
-provides 23% higher memory storage savings compared to LZ4. However, on small
+provides 24% higher memory storage savings compared to LZ4. However, on small
 data (below 50 KB), compression ratio difference between LZAV and LZ4
 diminishes, and LZ4 may have some advantage.
 
-LZAV algorithm's geomean performance on a variety of datasets is 540 +/- 210
-MB/s compression and 3000 +/- 1000 MB/s decompression speeds, on 4+ GHz 64-bit
+LZAV algorithm's geomean performance on a variety of datasets is 530 +/- 150
+MB/s compression and 3500 +/- 1200 MB/s decompression speeds, on 4+ GHz 64-bit
 processors released after 2019. Note that the algorithm exhibits adaptive
 qualities, and its actual performance depends on the data being compressed.
 LZAV may show an exceptional performance on your specific data.
@@ -95,8 +95,9 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.7**    |500 MB/s       |2920 MB/s      |41.46          |
+|**LZAV 2.8**    |560 MB/s       |2910 MB/s      |41.42          |
 |LZ4 1.9.2       |670 MB/s       |3950 MB/s      |47.60          |
+|Snappy 1.1.10   |470 MB/s       |3090 MB/s      |48.22          |
 |LZF 3.6         |390 MB/s       |810 MB/s       |48.15          |
 
 ### LLVM clang-cl 8.0.1 64-bit, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz ###
@@ -105,8 +106,9 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.7**    |435 MB/s       |2640 MB/s      |41.46          |
+|**LZAV 2.8**    |470 MB/s       |2620 MB/s      |41.42          |
 |LZ4 1.9.2       |660 MB/s       |4200 MB/s      |47.60          |
+|Snappy 1.1.10   |370 MB/s       |1950 MB/s      |48.22          |
 |LZF 3.6         |350 MB/s       |700 MB/s       |48.15          |
 
 ### LLVM clang 12.0.1 64-bit, CentOS 8, Xeon E-2176G (CoffeeLake), 4.5 GHz ###
@@ -115,8 +117,9 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.7**    |400 MB/s       |2200 MB/s      |41.46          |
+|**LZAV 2.8**    |450 MB/s       |2280 MB/s      |41.42          |
 |LZ4 1.9.2       |620 MB/s       |4300 MB/s      |47.60          |
+|Snappy 1.1.10   |545 MB/s       |2150 MB/s      |48.22          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
 
 ## Thanks ##
