@@ -1,5 +1,5 @@
 /**
- * lzav.h version 2.8
+ * lzav.h version 2.8.1
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -127,29 +127,29 @@
 #endif // likelihood macros
 
 #if defined( _MSC_VER ) && !defined( __clang__ )
-	#include <intrin.h> // For _BitScanForwardX.
+	#include <intrin.h> // For _BitScanForwardX and SSE2.
 #endif // defined( _MSC_VER ) && !defined( __clang__ )
 
 // Macros for fast memory block copy, possibly with address overlap.
 
-#if defined( _MSC_VER ) && !defined( __clang__ ) && \
-	!defined( _M_ARM ) && !defined( _M_ARM64 ) && !defined( _M_IA64 )
+#if defined( _MSC_VER ) && !defined( __clang__ ) && ( defined( _M_X64 ) || \
+	defined( _M_AMD64 ) || ( defined( _M_IX86_FP ) && _M_IX86_FP == 2 ))
 
 	// Compiler without memmove optimizations: assume x86/x64 platform, and
 	// use SSE2 for fast copy operation.
 
 	#define LZAV_MEMMOVE_16( d, s ) \
-		_mm_storeu_ps( (float*) ( d ), _mm_loadu_ps( (const float*) ( s )))
+		_mm_storeu_si128( (__m128i*) ( d ), _mm_loadu_si128( (__m128i*) ( s )))
 
 	#define LZAV_MEMMOVE_4( d, s ) \
 		*(uint32_t*) ( d ) = *(uint32_t*) ( s )
 
-#else // defined( __INTEL_COMPILER )
+#else // defined( _MSC_VER )
 
 	#define LZAV_MEMMOVE_16( d, s ) memmove( d, s, 16 )
 	#define LZAV_MEMMOVE_4( d, s ) memmove( d, s, 4 )
 
-#endif // defined( __INTEL_COMPILER )
+#endif // defined( _MSC_VER )
 
 /**
  * Function finds the number of continuously-matching leading bytes between
@@ -684,13 +684,15 @@ static inline int lzav_compress( const void* const src, void* const dst,
 	op++;
 
 	// Initialize the hash-table. Each hash-table item consists of 2 tuples
-	// (offset; 4 initial match bytes).
+	// (source data offset; 4 initial match bytes). Set source data offset to
+	// avoid rc2 OOB below.
 
-	uint32_t ww0 = 0;
+	uint32_t initv[ 4 ] = { LZAV_REF_MIN, 0, LZAV_REF_MIN, 0 };
 
 	if( LZAV_LIKELY( ip < ipet ))
 	{
-		memcpy( &ww0, ip, 4 );
+		memcpy( initv + 1, ip, 4 );
+		memcpy( initv + 3, ip, 4 );
 	}
 
 	uint32_t* ht32 = (uint32_t*) ht;
@@ -698,10 +700,10 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 	for( i = 0; i < htcap; i++ )
 	{
-		ht32[ 0 ] = LZAV_REF_MIN; // Set item offset to avoid rc2 OOB below.
-		ht32[ 1 ] = ww0;
-		ht32[ 2 ] = LZAV_REF_MIN;
-		ht32[ 3 ] = ww0;
+		ht32[ 0 ] = initv[ 0 ];
+		ht32[ 1 ] = initv[ 1 ];
+		ht32[ 2 ] = initv[ 2 ];
+		ht32[ 3 ] = initv[ 3 ];
 		ht32 += 4;
 	}
 
@@ -725,12 +727,16 @@ static inline int lzav_compress( const void* const src, void* const dst,
 		uint32_t* const hp = (uint32_t*) ( ht + ( hval & hmask ));
 		uint32_t* ho = hp;
 
+		// Find source data in hash-table tuples.
+
 		if( LZAV_LIKELY( iw1 != hp[ 1 ]))
 		{
 			ho += 2;
 
 			if( LZAV_LIKELY( iw1 != hp[ 3 ]))
 			{
+				// Source data not found - update hash-table tuple.
+
 				hp[ 2 ] = ipo;
 				hp[ 3 ] = iw1;
 
