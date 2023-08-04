@@ -1,5 +1,5 @@
 /**
- * lzav.h version 2.8.1
+ * lzav.h version 2.8.2
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -127,29 +127,8 @@
 #endif // likelihood macros
 
 #if defined( _MSC_VER ) && !defined( __clang__ )
-	#include <intrin.h> // For _BitScanForwardX and SSE2.
+	#include <intrin.h> // For _BitScanForwardX.
 #endif // defined( _MSC_VER ) && !defined( __clang__ )
-
-// Macros for fast memory block copy, possibly with address overlap.
-
-#if defined( _MSC_VER ) && !defined( __clang__ ) && ( defined( _M_X64 ) || \
-	defined( _M_AMD64 ) || ( defined( _M_IX86_FP ) && _M_IX86_FP == 2 ))
-
-	// Compiler without memmove optimizations: assume x86/x64 platform, and
-	// use SSE2 for fast copy operation.
-
-	#define LZAV_MEMMOVE_16( d, s ) \
-		_mm_storeu_si128( (__m128i*) ( d ), _mm_loadu_si128( (__m128i*) ( s )))
-
-	#define LZAV_MEMMOVE_4( d, s ) \
-		*(uint32_t*) ( d ) = *(uint32_t*) ( s )
-
-#else // defined( _MSC_VER )
-
-	#define LZAV_MEMMOVE_16( d, s ) memmove( d, s, 16 )
-	#define LZAV_MEMMOVE_4( d, s ) memmove( d, s, 4 )
-
-#endif // defined( _MSC_VER )
 
 /**
  * Function finds the number of continuously-matching leading bytes between
@@ -957,6 +936,9 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 		memcpy( &bv, a, 4 ); \
 		LZAV_IEC32( bv );
 
+	#define LZAV_MEMMOVE( d, s, c ) \
+		{ uint8_t tmp[ c ]; memcpy( tmp, s, c ); memcpy( d, tmp, c ); }
+
 	#define LZAV_SET_IPD_CV( x, v, sh ) \
 		const size_t d = ( x ) << csh | cv; \
 		ipd = op - d; \
@@ -1093,8 +1075,8 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 					if( LZAV_LIKELY( op < opet ))
 					{
-						LZAV_MEMMOVE_16( op, ipd );
-						LZAV_MEMMOVE_4( op + 16, ipd + 16 );
+						LZAV_MEMMOVE( op, ipd, 16 );
+						LZAV_MEMMOVE( op + 16, ipd + 16, 4 );
 						op += cc;
 						continue;
 					}
@@ -1108,8 +1090,8 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 					if( LZAV_LIKELY( op < opet ))
 					{
-						LZAV_MEMMOVE_16( op, ipd );
-						LZAV_MEMMOVE_4( op + 16, ipd + 16 );
+						LZAV_MEMMOVE( op, ipd, 16 );
+						LZAV_MEMMOVE( op + 16, ipd + 16, 4 );
 						op += cc;
 						continue;
 					}
@@ -1123,8 +1105,8 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 				if( LZAV_LIKELY( op < opet ))
 				{
-					LZAV_MEMMOVE_16( op, ipd );
-					LZAV_MEMMOVE_4( op + 16, ipd + 16 );
+					LZAV_MEMMOVE( op, ipd, 16 );
+					LZAV_MEMMOVE( op + 16, ipd + 16, 4 );
 					op += cc;
 					continue;
 				}
@@ -1180,10 +1162,10 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 		if( LZAV_LIKELY( op < opet ))
 		{
-			LZAV_MEMMOVE_16( op, ipd );
-			LZAV_MEMMOVE_16( op + 16, ipd + 16 );
-			LZAV_MEMMOVE_16( op + 32, ipd + 32 );
-			LZAV_MEMMOVE_16( op + 48, ipd + 48 );
+			LZAV_MEMMOVE( op, ipd, 16 );
+			LZAV_MEMMOVE( op + 16, ipd + 16, 16 );
+			LZAV_MEMMOVE( op + 32, ipd + 32, 16 );
+			LZAV_MEMMOVE( op + 48, ipd + 48, 16 );
 
 			if( LZAV_LIKELY( cc <= 64 ))
 			{
