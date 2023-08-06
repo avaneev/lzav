@@ -95,7 +95,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.8**    |560 MB/s       |2910 MB/s      |41.42          |
+|**LZAV 2.9**    |555 MB/s       |2910 MB/s      |41.40          |
 |LZ4 1.9.2       |670 MB/s       |3950 MB/s      |47.60          |
 |Snappy 1.1.10   |470 MB/s       |3090 MB/s      |48.22          |
 |LZF 3.6         |390 MB/s       |810 MB/s       |48.15          |
@@ -106,7 +106,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.8**    |470 MB/s       |2620 MB/s      |41.42          |
+|**LZAV 2.9**    |480 MB/s       |2630 MB/s      |41.40          |
 |LZ4 1.9.2       |660 MB/s       |4200 MB/s      |47.60          |
 |Snappy 1.1.10   |370 MB/s       |1950 MB/s      |48.22          |
 |LZF 3.6         |350 MB/s       |700 MB/s       |48.15          |
@@ -117,7 +117,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.8**    |450 MB/s       |2280 MB/s      |41.42          |
+|**LZAV 2.9**    |460 MB/s       |2260 MB/s      |41.40          |
 |LZ4 1.9.2       |620 MB/s       |4300 MB/s      |47.60          |
 |Snappy 1.1.10   |545 MB/s       |2150 MB/s      |48.22          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |

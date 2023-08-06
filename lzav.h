@@ -1,5 +1,5 @@
 /**
- * lzav.h version 2.8.2
+ * lzav.h version 2.9
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -663,15 +663,15 @@ static inline int lzav_compress( const void* const src, void* const dst,
 	op++;
 
 	// Initialize the hash-table. Each hash-table item consists of 2 tuples
-	// (source data offset; 4 initial match bytes). Set source data offset to
-	// avoid rc2 OOB below.
+	// (4 initial match bytes; 32-bit source data offset). Set source data
+	// offset to avoid rc2 OOB below.
 
-	uint32_t initv[ 4 ] = { LZAV_REF_MIN, 0, LZAV_REF_MIN, 0 };
+	uint32_t initv[ 4 ] = { 0, LZAV_REF_MIN, 0, LZAV_REF_MIN };
 
 	if( LZAV_LIKELY( ip < ipet ))
 	{
-		memcpy( initv + 1, ip, 4 );
-		memcpy( initv + 3, ip, 4 );
+		memcpy( initv, ip, 4 );
+		memcpy( initv + 2, ip, 4 );
 	}
 
 	uint32_t* ht32 = (uint32_t*) ht;
@@ -704,74 +704,105 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 		const uint32_t ipo = (uint32_t) ( ip - (const uint8_t*) src );
 		uint32_t* const hp = (uint32_t*) ( ht + ( hval & hmask ));
-		uint32_t* ho = hp;
 
 		// Find source data in hash-table tuples.
 
-		if( LZAV_LIKELY( iw1 != hp[ 1 ]))
+		uint32_t wpo; // Source data position associated with hash.
+		const uint8_t* wp; // At window pointer, 0-not found.
+
+		if( LZAV_UNLIKELY( iw1 == hp[ 0 ]))
 		{
-			ho += 2;
+			wpo = hp[ 1 ];
+			wp = (const uint8_t*) src + wpo;
+			memcpy( &ww2, wp + 4, 2 );
 
-			if( LZAV_LIKELY( iw1 != hp[ 3 ]))
+			if( LZAV_UNLIKELY( iw2 != ww2 ))
 			{
-				// Source data not found - update hash-table tuple.
-
-				hp[ 2 ] = ipo;
-				hp[ 3 ] = iw1;
-
-				mavg -= mavg >> 11;
-
-				if( mavg < ( 200 << 15 ) && ip != ipa ) // Speed-up threshold.
+				if( LZAV_LIKELY( iw1 != hp[ 2 ]))
 				{
-					// Compression speed-up technique that keeps the number of
-					// hash evaluations around 45% of compressed data length.
-					// In some cases reduces the number of blocks by several
-					// percent.
-
-					ip += 2 | rndb; // Use PRNG bit to dither match positions.
-					rndb = ipo & 1; // Delay to decorrelate from current match.
-
-					if( LZAV_UNLIKELY( mavg < 130 << 15 ))
-					{
-						ip++;
-
-						if( LZAV_UNLIKELY( mavg < 100 << 15 ))
-						{
-							ip += 100 - ( mavg >> 15 ); // Gradually faster.
-						}
-					}
-
-					continue;
+					hp[ 2 ] = iw1;
+					hp[ 3 ] = ipo;
+					wp = 0;
 				}
+				else
+				{
+					wpo = hp[ 3 ];
+					wp = (const uint8_t*) src + wpo;
+					memcpy( &ww2, wp + 4, 2 );
 
-				ip++;
-				continue;
+					if( LZAV_UNLIKELY( iw2 != ww2 ))
+					{
+						hp[ 2 ] = iw1;
+						hp[ 3 ] = ipo;
+						wp = 0;
+					}
+				}
+			}
+		}
+		else
+		{
+			if( LZAV_LIKELY( iw1 != hp[ 2 ]))
+			{
+				hp[ 2 ] = iw1;
+				hp[ 3 ] = ipo;
+				wp = 0;
+			}
+			else
+			{
+				wpo = hp[ 3 ];
+				wp = (const uint8_t*) src + wpo;
+				memcpy( &ww2, wp + 4, 2 );
+
+				if( LZAV_UNLIKELY( iw2 != ww2 ))
+				{
+					hp[ 0 ] = iw1;
+					hp[ 1 ] = ipo;
+					wp = 0;
+				}
 			}
 		}
 
-		const uint32_t wpo = *ho; // Source data position associated with hash.
-		const uint8_t* const wp = (const uint8_t*) src + wpo; // At window ptr.
-		memcpy( &ww2, wp + 4, 2 );
-
-		if( LZAV_UNLIKELY( iw2 != ww2 ))
+		if( LZAV_LIKELY( wp == 0 ))
 		{
-			hp[ 0 ] = ipo;
-			hp[ 1 ] = iw1;
 			mavg -= mavg >> 11;
+
+			if( mavg < ( 200 << 15 ) && ip != ipa ) // Speed-up threshold.
+			{
+				// Compression speed-up technique that keeps the number of
+				// hash evaluations around 45% of compressed data length.
+				// In some cases reduces the number of blocks by several
+				// percent.
+
+				ip += 2 | rndb; // Use PRNG bit to dither match positions.
+				rndb = ipo & 1; // Delay to decorrelate from current match.
+
+				if( LZAV_UNLIKELY( mavg < 130 << 15 ))
+				{
+					ip++;
+
+					if( LZAV_UNLIKELY( mavg < 100 << 15 ))
+					{
+						ip += 100 - ( mavg >> 15 ); // Gradually faster.
+					}
+				}
+
+				continue;
+			}
+
 			ip++;
 			continue;
 		}
 
 		const size_t d = ipo - wpo; // Reference offset.
 
-		if( LZAV_UNLIKELY(( d < 8 ) | ( d >= LZAV_WIN_LEN )))
+		if( LZAV_UNLIKELY(( d <= 7 ) | ( d >= LZAV_WIN_LEN )))
 		{
 			// Small offsets may be inefficient.
 
-			if( LZAV_UNLIKELY( d >= 8 ))
+			if( LZAV_UNLIKELY( d >= LZAV_WIN_LEN ))
 			{
-				hp[ 0 ] = ipo;
-				hp[ 1 ] = iw1;
+				hp[ 0 ] = iw1;
+				hp[ 1 ] = ipo;
 			}
 
 			ip++;
@@ -788,8 +819,8 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 			hp[ 2 ] = hp[ 0 ]; // LRU tuple replacement.
 			hp[ 3 ] = hp[ 1 ];
-			hp[ 0 ] = ipo;
-			hp[ 1 ] = iw1;
+			hp[ 0 ] = iw1;
+			hp[ 1 ] = ipo;
 		}
 
 		// Disallow overlapped reference copy.
