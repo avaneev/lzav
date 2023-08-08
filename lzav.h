@@ -1,5 +1,5 @@
 /**
- * lzav.h version 2.9
+ * lzav.h version 2.10
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -64,7 +64,7 @@
 
 	#define LZAV_LITTLE_ENDIAN 1
 
-#elif defined( __BIG_ENDIAN__ ) || \
+#elif defined( __BIG_ENDIAN__ ) || defined( _BIG_ENDIAN ) || \
 	( defined( __BYTE_ORDER__ ) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__ )
 
 	#define LZAV_LITTLE_ENDIAN 0
@@ -77,6 +77,15 @@
 
 #endif // defined( __BIG_ENDIAN__ )
 
+// Macro that denotes availability of required GCC-style built-in functions.
+
+#if defined( __GNUC__ ) || defined( __clang__ ) || \
+	defined( __IBMC__ ) || defined( __IBMCPP__ )
+
+	#define LZAV_GCC_BUILTINS 1
+
+#endif // GCC built-ins.
+
 // In-place endianness-correction macros, for singular variables of matching
 // bit-size.
 
@@ -87,7 +96,7 @@
 
 #else // LZAV_LITTLE_ENDIAN
 
-	#if defined( __GNUC__ ) || defined( __clang__ )
+	#if defined( LZAV_GCC_BUILTINS )
 
 		#define LZAV_IEC16( x ) x = __builtin_bswap16( x )
 		#define LZAV_IEC32( x ) x = __builtin_bswap32( x )
@@ -113,7 +122,7 @@
 // Likelihood macros that are used for manually-guided micro-optimization
 // (on Apple Silicon these guidances are slightly counter-productive).
 
-#if ( defined( __GNUC__ ) || defined( __clang__ )) && \
+#if defined( LZAV_GCC_BUILTINS ) && \
 	!( defined( __aarch64__ ) && defined( __APPLE__ ))
 
 	#define LZAV_LIKELY( x ) __builtin_expect( x, 1 )
@@ -144,15 +153,16 @@
 static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 	const size_t ml )
 {
-#if defined( _MSC_VER ) || defined( __GNUC__ ) || defined( __clang__ )
+#if defined( LZAV_GCC_BUILTINS ) || defined( _MSC_VER )
 
 	const uint8_t* const p1s = p1;
 	const uint8_t* const p1e = p1 + ml;
 
-	#if defined( _WIN64 ) || defined( _M_X64 ) || defined( __x86_64__ ) || \
-		defined( __aarch64__ ) || defined( __arm64__ ) || \
-		defined( _M_ARM64 ) || defined( __ppc64__ ) || defined( _M_IA64 ) || \
-		defined( __ia64__ )
+	#if defined( _WIN64 ) || defined( _M_X64 ) || defined( _M_AMD64 ) || \
+		defined( __x86_64__ ) || defined( _M_IA64 ) || defined( __ia64__ ) || \
+		defined( __aarch64__ ) || defined( __arm64 ) || \
+		defined( _M_ARM64 ) || defined( __PPC64__ ) || \
+		defined( __powerpc64__ ) || defined( __LP64__ )
 
 		while( LZAV_LIKELY( p1 + 7 < p1e ))
 		{
@@ -240,7 +250,7 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 
 	return( ml );
 
-#else // defined( _MSC_VER ) || defined( __GNUC__ ) || defined( __clang__ )
+#else // defined( LZAV_GCC_BUILTINS ) || defined( _MSC_VER )
 
 	size_t l = 0;
 
@@ -274,7 +284,7 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 
 	return( ml );
 
-#endif // defined( _MSC_VER ) || defined( __GNUC__ ) || defined( __clang__ )
+#endif // defined( LZAV_GCC_BUILTINS ) || defined( _MSC_VER )
 }
 
 /**
@@ -732,8 +742,8 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 					if( LZAV_UNLIKELY( iw2 != ww2 ))
 					{
-						hp[ 2 ] = iw1;
-						hp[ 3 ] = ipo;
+						hp[ 0 ] = iw1;
+						hp[ 1 ] = ipo;
 						wp = 0;
 					}
 				}
@@ -801,8 +811,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 			if( LZAV_UNLIKELY( d >= LZAV_WIN_LEN ))
 			{
-				hp[ 0 ] = iw1;
-				hp[ 1 ] = ipo;
+				hp[ 1 + ( iw1 != hp[ 0 ]) * 2 ] = ipo;
 			}
 
 			ip++;
@@ -817,9 +826,15 @@ static inline int lzav_compress( const void* const src, void* const dst,
 			// length's range. Otherwise, source data consisting of same-byte
 			// runs won't compress well.
 
-			hp[ 2 ] = hp[ 0 ]; // LRU tuple replacement.
-			hp[ 3 ] = hp[ 1 ];
-			hp[ 0 ] = iw1;
+			const uint32_t hp0 = hp[ 0 ];
+
+			if( LZAV_UNLIKELY( iw1 != hp0 )) // Insert tuple, or replace.
+			{
+				hp[ 2 ] = hp0;
+				hp[ 3 ] = hp[ 1 ];
+				hp[ 0 ] = iw1;
+			}
+
 			hp[ 1 ] = ipo;
 		}
 
