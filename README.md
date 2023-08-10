@@ -52,7 +52,8 @@ To decompress data:
         // Error handling.
     }
 
-LZAV algorithm and source code (which is ANSI C99) was quality-tested on:
+LZAV algorithm and its source code (which is
+[ISO C99](https://en.wikipedia.org/wiki/C99)) were quality-tested on:
 Clang, GCC, MSVC, Intel C++ compilers; x86, x86-64 (Intel, AMD), AArch64
 (Apple Silicon) architectures; Windows 10, CentOS 8 Linux, macOS 13.3.
 
@@ -99,7 +100,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.10**   |560 MB/s       |2910 MB/s      |41.31          |
+|**LZAV 2.11**   |560 MB/s       |2910 MB/s      |41.31          |
 |LZ4 1.9.2       |670 MB/s       |3950 MB/s      |47.60          |
 |Snappy 1.1.10   |470 MB/s       |3090 MB/s      |48.22          |
 |LZF 3.6         |390 MB/s       |810 MB/s       |48.15          |
@@ -110,7 +111,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.10**   |500 MB/s       |2650 MB/s      |41.31          |
+|**LZAV 2.11**   |500 MB/s       |2650 MB/s      |41.31          |
 |LZ4 1.9.2       |660 MB/s       |4200 MB/s      |47.60          |
 |Snappy 1.1.10   |370 MB/s       |1950 MB/s      |48.22          |
 |LZF 3.6         |350 MB/s       |700 MB/s       |48.15          |
@@ -121,7 +122,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.10**   |465 MB/s       |2170 MB/s      |41.31          |
+|**LZAV 2.11**   |465 MB/s       |2170 MB/s      |41.31          |
 |LZ4 1.9.2       |620 MB/s       |4300 MB/s      |47.60          |
 |Snappy 1.1.10   |545 MB/s       |2150 MB/s      |48.22          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |

@@ -1,5 +1,5 @@
 /**
- * lzav.h version 2.10
+ * lzav.h version 2.11
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -59,8 +59,9 @@
 
 // Endianness-definition macro.
 
-#if defined( _WIN32 ) || defined( __LITTLE_ENDIAN__ ) || \
-	( defined( __BYTE_ORDER__ ) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ )
+#if defined( _WIN32 ) || defined( i386 ) || defined( __x86_64__ ) || \
+	defined( __LITTLE_ENDIAN__ ) || ( defined( __BYTE_ORDER__ ) && \
+	__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ )
 
 	#define LZAV_LITTLE_ENDIAN 1
 
@@ -80,7 +81,7 @@
 // Macro that denotes availability of required GCC-style built-in functions.
 
 #if defined( __GNUC__ ) || defined( __clang__ ) || \
-	defined( __IBMC__ ) || defined( __IBMCPP__ )
+	defined( __IBMC__ ) || defined( __IBMCPP__ ) || defined( __COMPCERT__ )
 
 	#define LZAV_GCC_BUILTINS 1
 
@@ -136,7 +137,7 @@
 #endif // likelihood macros
 
 #if defined( _MSC_VER ) && !defined( __clang__ )
-	#include <intrin.h> // For _BitScanForwardX.
+	#include <intrin.h> // For _BitScanForwardX and _byteswap_X.
 #endif // defined( _MSC_VER ) && !defined( __clang__ )
 
 /**
@@ -158,11 +159,9 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 	const uint8_t* const p1s = p1;
 	const uint8_t* const p1e = p1 + ml;
 
-	#if defined( _WIN64 ) || defined( _M_X64 ) || defined( _M_AMD64 ) || \
-		defined( __x86_64__ ) || defined( _M_IA64 ) || defined( __ia64__ ) || \
+	#if defined( _WIN64 ) || defined( __x86_64__ ) || defined( __ia64__ ) || \
 		defined( __aarch64__ ) || defined( __arm64 ) || \
-		defined( _M_ARM64 ) || defined( __PPC64__ ) || \
-		defined( __powerpc64__ ) || defined( __LP64__ )
+		defined( __PPC64__ ) || defined( __powerpc64__ ) || defined( __LP64__ )
 
 		while( LZAV_LIKELY( p1 + 7 < p1e ))
 		{
@@ -188,7 +187,7 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 			p2 += 8;
 		}
 
-		// At most 7 bytes left.
+	// At most 7 bytes left.
 
 	if( LZAV_LIKELY( p1 + 3 < p1e ))
 	{
