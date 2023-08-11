@@ -1,5 +1,5 @@
 /**
- * lzav.h version 2.12
+ * lzav.h version 2.13
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -59,15 +59,17 @@
 
 // Endianness definition macro, can be used as a logical constant.
 
-#if defined( __LITTLE_ENDIAN__ ) || defined( _WIN32 ) || defined( i386 ) || \
+#if defined( __LITTLE_ENDIAN__ ) || defined( __LITTLE_ENDIAN ) || \
+	defined( _LITTLE_ENDIAN ) || defined( _WIN32 ) || defined( i386 ) || \
 	defined( __i386 ) || defined( __i386__ ) || defined( __x86_64__ ) || \
 	( defined( __BYTE_ORDER__ ) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ )
 
 	#define LZAV_LITTLE_ENDIAN 1
 
-#elif defined( __BIG_ENDIAN__ ) || defined( _BIG_ENDIAN ) || \
-	defined( __SYSC_ZARCH__ ) || defined( __zarch__ ) || \
-	defined( __s390x__ ) || defined( __sparc ) || defined( __sparc__ ) || \
+#elif defined( __BIG_ENDIAN__ ) || defined( __BIG_ENDIAN ) || \
+	defined( _BIG_ENDIAN ) || defined( __SYSC_ZARCH__ ) || \
+	defined( __zarch__ ) || defined( __s390x__ ) || defined( __sparc ) || \
+	defined( __sparc__ ) || \
 	( defined( __BYTE_ORDER__ ) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__ )
 
 	#define LZAV_LITTLE_ENDIAN 0
@@ -85,7 +87,7 @@
 #if defined( __GNUC__ ) || defined( __clang__ ) || \
 	defined( __IBMC__ ) || defined( __IBMCPP__ ) || defined( __COMPCERT__ )
 
-	#define LZAV_GCC_BUILTINS 1
+	#define LZAV_GCC_BUILTINS
 
 #endif // GCC built-ins.
 
@@ -1023,7 +1025,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 				{
 					bh = *ip;
 
-					if( LZAV_LIKELY(( op < opet ) & ( ipe - ipd >= 16 )))
+					if( LZAV_LIKELY(( op < opet ) & ( ipd + 15 < ipe )))
 					{
 						memcpy( op, ipd, 16 );
 						op += cc;
@@ -1037,7 +1039,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 						return( LZAV_E_SRCOOB );
 					}
 
-					if( LZAV_LIKELY(( op < opet ) & ( ipe - ipd >= 16 )))
+					if( LZAV_LIKELY(( op < opet ) & ( ipd + 15 < ipe )))
 					{
 						memcpy( op, ipd, 16 );
 						op += cc;
@@ -1066,7 +1068,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 					return( LZAV_E_SRCOOB );
 				}
 
-				if( LZAV_LIKELY(( op < opet ) & ( ipe - ipd >= 48 )))
+				if( LZAV_LIKELY(( op < opet ) & ( ipd + 63 < ipe )))
 				{
 				#if defined( __AVX__ )
 					memcpy( op, ipd, 32 );
