@@ -1,11 +1,11 @@
 /**
- * lzav.h version 2.13
+ * lzav.h version 2.14
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
  *
  * Description is available at https://github.com/avaneev/lzav
- * E-mail: aleksey.vaneev@gmail.com
+ * E-mail: aleksey.vaneev@gmail.com or info@voxengo.com
  *
  * License
  *
@@ -177,7 +177,7 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 			if( vd != 0 )
 			{
 			#if defined( _MSC_VER ) && !defined( __clang__ )
-				unsigned long i = 0;
+				unsigned long i;
 				_BitScanForward64( &i, (unsigned __int64) vd );
 				return( p1 - p1s + ( i >> 3 ));
 			#elif LZAV_LITTLE_ENDIAN
@@ -211,7 +211,7 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 		if( vd != 0 )
 		{
 		#if defined( _MSC_VER ) && !defined( __clang__ )
-			unsigned long i = 0;
+			unsigned long i;
 			_BitScanForward( &i, (unsigned long) vd );
 			return( p1 - p1s + ( i >> 3 ));
 		#elif LZAV_LITTLE_ENDIAN
@@ -491,6 +491,7 @@ static inline uint8_t* lzav_write_blk_1( uint8_t* op, size_t lc, size_t rc,
 	}
 
 	*op = (uint8_t) ( 3 << 4 );
+
 	uint32_t ov = (uint32_t) (( rc - 16 ) << 24 | d );
 
 	LZAV_IEC32( ov );
