@@ -1,5 +1,5 @@
 /**
- * lzav.h version 2.14
+ * lzav.h version 2.15
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -729,10 +729,11 @@ static inline int lzav_compress( const void* const src, void* const dst,
 			wpo = hp[ 1 ];
 			wp = (const uint8_t*) src + wpo;
 			memcpy( &ww2, wp + 4, 2 );
+			const uint32_t hp2 = hp[ 2 ];
 
 			if( LZAV_UNLIKELY( iw2 != ww2 ))
 			{
-				if( LZAV_LIKELY( iw1 != hp[ 2 ]))
+				if( LZAV_LIKELY( iw1 != hp2 ))
 				{
 					hp[ 2 ] = iw1;
 					hp[ 3 ] = ipo;
