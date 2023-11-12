@@ -96,7 +96,9 @@ visit [lzbench](https://github.com/inikep/lzbench).
 
 P.S. Popular Zstd's benchmark was not included here, because it is not a pure
 LZ77, much harder to integrate, and has a much larger code size - a different
-league, close to zlib.
+league, close to zlib. If you have a practical interest, performance of LZAV
+can be compared to Zstd and other algorithms using precompiled
+[TurboBench](https://github.com/powturbo/TurboBench/releases).
 
 ### Apple clang 12.0.0 64-bit, macOS 13.3.1, Apple M1, 3.5 GHz ###
 
