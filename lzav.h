@@ -144,6 +144,56 @@
 	#include <intrin.h> // For _BitScanForwardX and _byteswap_X.
 #endif // defined( _MSC_VER ) && !defined( __clang__ )
 
+// count trailing zeros (ctz)
+static inline unsigned long int LZAV_CTZL(unsigned long int x)
+{
+//	assert(x > 0);
+#if defined( _MSC_VER ) && !defined( __clang__ )
+	unsigned long ix;
+	_BitScanForward( &ix, (unsigned long) x );
+	return ix;
+#elif defined( __GNUC__ ) || defined( __clang__ )
+	return __builtin_ctz ( x );
+#endif // defined( _MSC_VER ) && !defined( __clang__ )
+}
+
+static inline unsigned long long int LZAV_CTZLL(unsigned long long int x)
+{
+//	assert(x > 0);
+#if defined( _MSC_VER ) && !defined( __clang__ )
+	unsigned long long ix;
+	_BitScanForward64( &ix, (unsigned long long ) x );
+	return ix;
+#elif defined( __GNUC__ ) || defined( __clang__ )
+	return __builtin_ctzll ( x );
+#endif // defined( _MSC_VER ) && !defined( __clang__ )
+}
+
+// count leading zeros (clz)
+static inline unsigned long int LZAV_CLZL(unsigned long int x)
+{
+//	assert(x > 0);
+#if defined( _MSC_VER ) && !defined( __clang__ )
+	unsigned long ix;
+	_BitScanReverse( &ix, (unsigned long) x );
+	return 31-ix;
+#elif defined( __GNUC__ ) || defined( __clang__ )
+	return __builtin_clz ( x );
+#endif // defined( _MSC_VER ) && !defined( __clang__ )
+}
+
+static inline unsigned long long int LZAV_CLZLL(unsigned long long int x)
+{
+//	assert(x > 0);
+#if defined( _MSC_VER ) && !defined( __clang__ )
+	unsigned long long ix;
+	_BitScanReverse64( &ix, (unsigned long long ) x );
+	return 63-ix;
+#elif defined( __GNUC__ ) || defined( __clang__ )
+	return __builtin_clzll ( x );
+#endif // defined( _MSC_VER ) && !defined( __clang__ )
+}
+
 /**
  * Function finds the number of continuously-matching leading bytes between
  * two buffers. This function is well-optimized for a wide variety of
@@ -176,14 +226,10 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 
 			if( vd != 0 )
 			{
-			#if defined( _MSC_VER ) && !defined( __clang__ )
-				unsigned long i;
-				_BitScanForward64( &i, (unsigned __int64) vd );
-				return( p1 - p1s + ( i >> 3 ));
-			#elif LZAV_LITTLE_ENDIAN
-				return( p1 - p1s + ( __builtin_ctzll( vd ) >> 3 ));
-			#else // LZAV_LITTLE_ENDIAN
-				return( p1 - p1s + ( __builtin_clzll( vd ) >> 3 ));
+			#if LZAV_LITTLE_ENDIAN
+				return( p1 - p1s + ( LZAV_CTZLL( vd ) >> 3 ));
+			#else // !LZAV_LITTLE_ENDIAN
+				return( p1 - p1s + ( LZAV_CLZLL( vd ) >> 3 ));
 			#endif // LZAV_LITTLE_ENDIAN
 			}
 
@@ -210,14 +256,10 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 
 		if( vd != 0 )
 		{
-		#if defined( _MSC_VER ) && !defined( __clang__ )
-			unsigned long i;
-			_BitScanForward( &i, (unsigned long) vd );
-			return( p1 - p1s + ( i >> 3 ));
-		#elif LZAV_LITTLE_ENDIAN
-			return( p1 - p1s + ( __builtin_ctz( vd ) >> 3 ));
-		#else // LZAV_LITTLE_ENDIAN
-			return( p1 - p1s + ( __builtin_clz( vd ) >> 3 ));
+		#if LZAV_LITTLE_ENDIAN
+			return( p1 - p1s + ( LZAV_CTZL( vd ) >> 3 ));
+		#else // !LZAV_LITTLE_ENDIAN
+			return( p1 - p1s + ( LZAV_CLZL( vd ) >> 3 ));
 		#endif // LZAV_LITTLE_ENDIAN
 		}
 
@@ -379,7 +421,7 @@ static inline uint8_t* lzav_write_blk_1( uint8_t* op, size_t lc, size_t rc,
 		{
 		#if LZAV_LITTLE_ENDIAN
 			uint16_t ov = (uint16_t) (( lc - 1 - 15 ) << 8 | cv );
-		#else // LZAV_LITTLE_ENDIAN
+		#else // !LZAV_LITTLE_ENDIAN
 			uint16_t ov = (uint16_t) ( cv << 8 | ( lc - 1 - 15 ));
 		#endif // LZAV_LITTLE_ENDIAN
 
@@ -451,7 +493,7 @@ static inline uint8_t* lzav_write_blk_1( uint8_t* op, size_t lc, size_t rc,
 
 	#if LZAV_LITTLE_ENDIAN
 		uint16_t ov = (uint16_t) (( rc - 16 ) << 8 | d >> 2 );
-	#else // LZAV_LITTLE_ENDIAN
+	#else // !LZAV_LITTLE_ENDIAN
 		uint16_t ov = (uint16_t) (( d & ~3 ) << 6 | ( rc - 16 ));
 	#endif // LZAV_LITTLE_ENDIAN
 
