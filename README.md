@@ -7,10 +7,10 @@ now-classic [LZ77](https://wikipedia.org/wiki/LZ77_and_LZ78) lossless data
 compression method. LZAV holds a good position on the Pareto landscape of
 factors, among many similar in-memory (non-streaming) compression algorithms.
 
-LZAV algorithm's code is portable, scalar, header-only, inlineable C
-(C++ compatible). It supports little- and big-endian platforms, and any memory
-alignment models. The algorithm is efficient on both 32- and 64-bit platforms.
-Incompressible data expands by no more than 0.58%.
+LZAV algorithm's code is portable, cross-platform, scalar, header-only,
+inlineable C (C++ compatible). It supports little- and big-endian platforms,
+and any memory alignment models. The algorithm is efficient on both 32- and
+64-bit platforms. Incompressible data expands by no more than 0.58%.
 
 LZAV does not sacrifice internal out-of-bounds (OOB) checks for decompression
 speed. This means that LZAV can be used in strict conditions where OOB memory
@@ -106,7 +106,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.15**   |560 MB/s       |2940 MB/s      |41.31          |
+|**LZAV 2.16**   |560 MB/s       |2940 MB/s      |41.31          |
 |LZ4 1.9.2       |670 MB/s       |3950 MB/s      |47.60          |
 |Snappy 1.1.10   |470 MB/s       |3090 MB/s      |48.22          |
 |LZF 3.6         |390 MB/s       |810 MB/s       |48.15          |
@@ -117,7 +117,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.15**   |500 MB/s       |2660 MB/s      |41.31          |
+|**LZAV 2.16**   |500 MB/s       |2660 MB/s      |41.31          |
 |LZ4 1.9.2       |660 MB/s       |4200 MB/s      |47.60          |
 |Snappy 1.1.10   |370 MB/s       |1950 MB/s      |48.22          |
 |LZF 3.6         |350 MB/s       |700 MB/s       |48.15          |
@@ -128,7 +128,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.15**   |460 MB/s       |2240 MB/s      |41.31          |
+|**LZAV 2.16**   |460 MB/s       |2240 MB/s      |41.31          |
 |LZ4 1.9.2       |620 MB/s       |4300 MB/s      |47.60          |
 |Snappy 1.1.10   |545 MB/s       |2150 MB/s      |48.22          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |

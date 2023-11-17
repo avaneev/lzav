@@ -1,5 +1,5 @@
 /**
- * lzav.h version 2.15
+ * lzav.h version 2.16
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -140,9 +140,9 @@
 
 #endif // likelihood macros
 
-#if defined( _MSC_VER ) && !defined( __clang__ )
+#if defined( _MSC_VER ) && !defined( LZAV_GCC_BUILTINS )
 	#include <intrin.h> // For _BitScanForwardX and _byteswap_X.
-#endif // defined( _MSC_VER ) && !defined( __clang__ )
+#endif // defined( _MSC_VER ) && !defined( LZAV_GCC_BUILTINS )
 
 /**
  * Function finds the number of continuously-matching leading bytes between
@@ -176,7 +176,7 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 
 			if( vd != 0 )
 			{
-			#if defined( _MSC_VER ) && !defined( __clang__ )
+			#if defined( _MSC_VER ) && !defined( LZAV_GCC_BUILTINS )
 				unsigned long i;
 				_BitScanForward64( &i, (unsigned __int64) vd );
 				return( p1 - p1s + ( i >> 3 ));
@@ -210,7 +210,7 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 
 		if( vd != 0 )
 		{
-		#if defined( _MSC_VER ) && !defined( __clang__ )
+		#if defined( _MSC_VER ) && !defined( LZAV_GCC_BUILTINS )
 			unsigned long i;
 			_BitScanForward( &i, (unsigned long) vd );
 			return( p1 - p1s + ( i >> 3 ));
