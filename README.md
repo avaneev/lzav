@@ -94,12 +94,6 @@ decompression has none at all - this is especially relevant for smaller data.
 For a more comprehensive in-memory compression algorithms benchmark you may
 visit [lzbench](https://github.com/inikep/lzbench).
 
-P.S. Popular Zstd's benchmark was not included here, because it is not a pure
-LZ77, much harder to integrate, and has a much larger code size - a different
-league, close to zlib. If you have a practical interest, performance of LZAV
-can be compared to Zstd and other algorithms using precompiled
-[TurboBench](https://github.com/powturbo/TurboBench/releases).
-
 ### Apple clang 12.0.0 64-bit, macOS 13.3.1, Apple M1, 3.5 GHz ###
 
 Silesia compression corpus
@@ -132,6 +126,18 @@ Silesia compression corpus
 |LZ4 1.9.2       |620 MB/s       |4300 MB/s      |47.60          |
 |Snappy 1.1.10   |545 MB/s       |2150 MB/s      |48.22          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
+
+P.S. Popular Zstd's benchmark was not included here, because it is not a pure
+LZ77, much harder to integrate, and has a much larger code size - a different
+league, close to zlib. If you have a practical interest, performance of LZAV
+can be compared to Zstd and other algorithms using precompiled
+[TurboBench](https://github.com/powturbo/TurboBench/releases). Here are
+author's measurements with TurboBench, on Ryzen 3700X, on Silesia dataset:
+
+|Compressor      |Compression    |Decompression  |Ratio          |
+|----            |----           |----           |----           |
+|zstd 1.5.5 -1   |460 MB/s       |1870 MB/s      |41.0           |
+|zstd 1.5.5 1    |436 MB/s       |1400 MB/s      |34.6           |
 
 ## Thanks ##
 
