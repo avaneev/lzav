@@ -1,5 +1,5 @@
 /**
- * lzav.h version 2.16
+ * lzav.h version 2.17
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -1027,7 +1027,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 				{
 					bh = *ip;
 
-					if( LZAV_LIKELY(( op < opet ) & ( ipd + 15 < ipe )))
+					if( LZAV_LIKELY(( op < opet ) & ( ipd < ipe - 15 )))
 					{
 						memcpy( op, ipd, 16 );
 						op += cc;
@@ -1041,7 +1041,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 						return( LZAV_E_SRCOOB );
 					}
 
-					if( LZAV_LIKELY(( op < opet ) & ( ipd + 15 < ipe )))
+					if( LZAV_LIKELY(( op < opet ) & ( ipd < ipe - 15 )))
 					{
 						memcpy( op, ipd, 16 );
 						op += cc;
@@ -1070,7 +1070,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 					return( LZAV_E_SRCOOB );
 				}
 
-				if( LZAV_LIKELY(( op < opet ) & ( ipd + 63 < ipe )))
+				if( LZAV_LIKELY(( op < opet ) & ( ipd < ipe - 63 )))
 				{
 				#if defined( __AVX__ )
 					memcpy( op, ipd, 32 );

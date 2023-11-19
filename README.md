@@ -94,35 +94,35 @@ decompression has none at all - this is especially relevant for smaller data.
 For a more comprehensive in-memory compression algorithms benchmark you may
 visit [lzbench](https://github.com/inikep/lzbench).
 
-### Apple clang 12.0.0 64-bit, macOS 13.3.1, Apple M1, 3.5 GHz ###
+### Apple clang 12.0.0 ARM64, macOS 13.3.1, Apple M1, 3.5 GHz ###
 
 Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.16**   |560 MB/s       |2940 MB/s      |41.31          |
+|**LZAV 2.17**   |560 MB/s       |2940 MB/s      |41.31          |
 |LZ4 1.9.2       |670 MB/s       |3950 MB/s      |47.60          |
 |Snappy 1.1.10   |470 MB/s       |3090 MB/s      |48.22          |
 |LZF 3.6         |390 MB/s       |810 MB/s       |48.15          |
 
-### LLVM clang-cl 8.0.1 64-bit, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz ###
+### LLVM clang-cl 8.0.1 x86-64, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz ###
 
 Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.16**   |500 MB/s       |2660 MB/s      |41.31          |
+|**LZAV 2.17**   |500 MB/s       |2660 MB/s      |41.31          |
 |LZ4 1.9.2       |660 MB/s       |4200 MB/s      |47.60          |
 |Snappy 1.1.10   |370 MB/s       |1950 MB/s      |48.22          |
 |LZF 3.6         |350 MB/s       |700 MB/s       |48.15          |
 
-### LLVM clang 12.0.1 64-bit, CentOS 8, Xeon E-2176G (CoffeeLake), 4.5 GHz ###
+### LLVM clang 12.0.1 x86-64, CentOS 8, Xeon E-2176G (CoffeeLake), 4.5 GHz ###
 
 Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 2.16**   |460 MB/s       |2240 MB/s      |41.31          |
+|**LZAV 2.17**   |460 MB/s       |2240 MB/s      |41.31          |
 |LZ4 1.9.2       |620 MB/s       |4300 MB/s      |47.60          |
 |Snappy 1.1.10   |545 MB/s       |2150 MB/s      |48.22          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
