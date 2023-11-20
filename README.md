@@ -139,6 +139,18 @@ author's measurements with TurboBench, on Ryzen 3700X, on Silesia dataset:
 |zstd 1.5.5 -1   |460 MB/s       |1870 MB/s      |41.0           |
 |zstd 1.5.5 1    |436 MB/s       |1400 MB/s      |34.6           |
 
+## Notes ##
+
+1. LZAV API is not equivalent to LZ4 nor Snappy API. For example, "dstl"
+parameter in the decompressor should specify the original uncompressed length,
+which should have been previously stored in some manner, independent of LZAV.
+
+2. Run-time memory sanitizers like Valgrind and Dr.Memory may generate the
+"uninitialized read" warning in decompressor's block type 1 handler. This is
+an expected behavior, and not a bug - this happens because of SIMD
+optimizations that read bytes from the output buffer (within its valid range)
+which were not yet initialized.
+
 ## Thanks ##
 
 * [Paul Dreik](https://github.com/pauldreik), for finding memcpy UB in the
