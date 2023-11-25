@@ -1,5 +1,5 @@
 /**
- * lzav.h version 2.17
+ * lzav.h version 2.18
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -718,22 +718,19 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 		const uint32_t ipo = (uint32_t) ( ip - (const uint8_t*) src );
 		uint32_t* const hp = (uint32_t*) ( ht + ( hval & hmask ));
+		const uint32_t hw1 = hp[ 0 ]; // Tuple 1's match word.
+		const uint8_t* wp; // At window pointer, 0-not found.
 
 		// Find source data in hash-table tuples.
 
-		uint32_t wpo; // Source data position associated with hash.
-		const uint8_t* wp; // At window pointer, 0-not found.
-
-		if( LZAV_UNLIKELY( iw1 == hp[ 0 ]))
+		if( LZAV_UNLIKELY( iw1 == hw1 ))
 		{
-			wpo = hp[ 1 ];
-			wp = (const uint8_t*) src + wpo;
+			wp = (const uint8_t*) src + hp[ 1 ];
 			memcpy( &ww2, wp + 4, 2 );
-			const uint32_t hp2 = hp[ 2 ];
 
 			if( LZAV_UNLIKELY( iw2 != ww2 ))
 			{
-				if( LZAV_LIKELY( iw1 != hp2 ))
+				if( LZAV_LIKELY( iw1 != hp[ 2 ]))
 				{
 					hp[ 2 ] = iw1;
 					hp[ 3 ] = ipo;
@@ -741,8 +738,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 				}
 				else
 				{
-					wpo = hp[ 3 ];
-					wp = (const uint8_t*) src + wpo;
+					wp = (const uint8_t*) src + hp[ 3 ];
 					memcpy( &ww2, wp + 4, 2 );
 
 					if( LZAV_UNLIKELY( iw2 != ww2 ))
@@ -764,8 +760,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 			}
 			else
 			{
-				wpo = hp[ 3 ];
-				wp = (const uint8_t*) src + wpo;
+				wp = (const uint8_t*) src + hp[ 3 ];
 				memcpy( &ww2, wp + 4, 2 );
 
 				if( LZAV_UNLIKELY( iw2 != ww2 ))
@@ -808,7 +803,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 			continue;
 		}
 
-		const size_t d = ipo - wpo; // Reference offset.
+		const size_t d = ip - wp; // Reference offset.
 
 		if( LZAV_UNLIKELY(( d <= 7 ) | ( d >= LZAV_WIN_LEN )))
 		{
@@ -831,16 +826,17 @@ static inline int lzav_compress( const void* const src, void* const dst,
 			// length's range. Otherwise, source data consisting of same-byte
 			// runs won't compress well.
 
-			const uint32_t hp0 = hp[ 0 ];
-
-			if( LZAV_UNLIKELY( iw1 != hp0 )) // Insert tuple, or replace.
+			if( LZAV_LIKELY( iw1 == hw1 )) // Replace tuple, or insert.
 			{
-				hp[ 2 ] = hp0;
+				hp[ 1 ] = ipo;
+			}
+			else
+			{
+				hp[ 2 ] = hw1;
 				hp[ 3 ] = hp[ 1 ];
 				hp[ 0 ] = iw1;
+				hp[ 1 ] = ipo;
 			}
-
-			hp[ 1 ] = ipo;
 		}
 
 		// Disallow overlapped reference copy.
@@ -922,7 +918,7 @@ static inline int lzav_compress_default( const void* const src,
  * accesses, and checks for decompressed data length equality, this is not a
  * strict guarantee of a valid decompression. In cases when the compressed
  * data is stored in a long-term storage without embedded data integrity
- * mechanisms (e.g., a database without RAID 0 guarantee, a binary container
+ * mechanisms (e.g., a database without RAID 1 guarantee, a binary container
  * without a digital signature nor CRC), a checksum (hash) of the original
  * uncompressed data should be stored, and then evaluated against that of the
  * decompressed data. Also, a separate checksum (hash) of application-defined
