@@ -1,5 +1,5 @@
 /**
- * lzav.h version 3.0
+ * lzav.h version 3.1
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -82,7 +82,7 @@
 
 #endif // defined( __BIG_ENDIAN__ )
 
-// Macro that defines availability of 64-bit instructions.
+// Macro that denotes availability of 64-bit instructions.
 
 #if defined( _WIN64 ) || defined( __x86_64__ ) || defined( __ia64__ ) || \
 	defined( __aarch64__ ) || defined( __arm64 ) || defined( __PPC64__ ) || \
@@ -784,11 +784,11 @@ static inline int lzav_compress( const void* const src, void* const dst,
 				ip += 1 + rndb; // Use PRNG bit to dither match positions.
 				rndb = ipo & 1; // Delay to decorrelate from current match.
 
-				if( LZAV_UNLIKELY( mavg < 130 << 15 ))
+				if( LZAV_UNLIKELY( mavg < ( 130 << 15 )))
 				{
 					ip++;
 
-					if( LZAV_UNLIKELY( mavg < 100 << 15 ))
+					if( LZAV_UNLIKELY( mavg < ( 100 << 15 )))
 					{
 						ip += 100 - ( mavg >> 15 ); // Gradually faster.
 					}
@@ -799,7 +799,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 			continue;
 		}
 
-		const size_t d = ip - wp; // Reference offset.
+		const size_t d = ip - wp; // Reference offset (distance).
 
 		if( LZAV_UNLIKELY(( d <= 7 ) | ( d >= LZAV_WIN_LEN )))
 		{
@@ -1017,30 +1017,12 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 				ipd = ip;
 				ip += cc;
 
-				if( LZAV_LIKELY( ip < ipe ))
+				if( LZAV_LIKELY(( op < opet ) & ( ipd < ipe - 15 )))
 				{
 					bh = *ip;
-
-					if( LZAV_LIKELY(( op < opet ) & ( ipd < ipe - 15 )))
-					{
-						memcpy( op, ipd, 16 );
-						op += cc;
-						continue;
-					}
-				}
-				else
-				{
-					if( LZAV_UNLIKELY( ip > ipe ))
-					{
-						return( LZAV_E_SRCOOB );
-					}
-
-					if( LZAV_LIKELY(( op < opet ) & ( ipd < ipe - 15 )))
-					{
-						memcpy( op, ipd, 16 );
-						op += cc;
-						continue;
-					}
+					memcpy( op, ipd, 16 );
+					op += cc;
+					continue;
 				}
 			}
 			else
@@ -1054,17 +1036,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 				ipd = ip;
 				ip += cc;
 
-				if( LZAV_LIKELY( ip < ipe ))
-				{
-					bh = *ip;
-				}
-				else
-				if( LZAV_UNLIKELY( ip > ipe ))
-				{
-					return( LZAV_E_SRCOOB );
-				}
-
-				if( LZAV_LIKELY(( op < opet ) & ( ipd < ipe - 63 )))
+				if( LZAV_LIKELY(( op < opet ) & ( ipd < ipe - 63 - 1 )))
 				{
 				#if defined( __AVX__ )
 					memcpy( op, ipd, 32 );
@@ -1078,6 +1050,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 					if( LZAV_LIKELY( cc <= 64 ))
 					{
+						bh = *ip;
 						op += cc;
 						continue;
 					}
@@ -1086,6 +1059,16 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 					op += 64;
 					cc -= 64;
 				}
+			}
+
+			if( LZAV_LIKELY( ip < ipe ))
+			{
+				bh = *ip;
+			}
+			else
+			if( LZAV_UNLIKELY( ip > ipe ))
+			{
+				return( LZAV_E_SRCOOB );
 			}
 
 			if( LZAV_UNLIKELY( op + cc > ope ))
@@ -1120,7 +1103,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 				if( LZAV_LIKELY(( bh & 16 ) == 0 )) // True, if block type 2.
 				{
 					LZAV_LOAD16( ip + 1 );
-					LZAV_SET_IPD( bh >> 6 | bv << 2 );
+					LZAV_SET_IPD( bh >> 6 | (size_t) bv << 2 );
 					ip += 3;
 					bh = *ip;
 
@@ -1160,7 +1143,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 			}
 			else // Block type 1.
 			{
-				LZAV_SET_IPD( bh >> 6 | ip[ 1 ] << 2 );
+				LZAV_SET_IPD( bh >> 6 | (size_t) ip[ 1 ] << 2 );
 				ip += 2;
 				bh = *ip;
 
@@ -1220,7 +1203,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 		}
 		else // Block type 1.
 		{
-			LZAV_SET_IPD( bh >> 6 | ip[ 1 ] << 2 );
+			LZAV_SET_IPD( bh >> 6 | (size_t) ip[ 1 ] << 2 );
 			cc += ip[ 2 ];
 			ip += 3;
 			bh = *ip;
