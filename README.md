@@ -73,7 +73,7 @@ rather small independent codebase.
 
 Performance of LZAV is not limited to the presented ballpark numbers.
 Depending on the data being compressed, LZAV can achieve 800 MB/s compression
-and 4500 MB/s decompression speeds. Incompressible data decompresses at 9500
+and 4500 MB/s decompression speeds. Incompressible data decompresses at 10000
 MB/s rate, which is not far from the "memcpy". There are cases like the
 [enwik9 dataset](https://mattmahoney.net/dc/textdata.html) where LZAV
 provides 20% higher memory storage savings compared to LZ4. However, on small
@@ -100,7 +100,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.1**    |565 MB/s       |2990 MB/s      |41.31          |
+|**LZAV 3.2**    |565 MB/s       |3020 MB/s      |41.31          |
 |LZ4 1.9.4       |700 MB/s       |4570 MB/s      |47.60          |
 |Snappy 1.1.10   |495 MB/s       |3230 MB/s      |48.22          |
 |LZF 3.6         |395 MB/s       |800 MB/s       |48.15          |
@@ -111,7 +111,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.1**    |505 MB/s       |2700 MB/s      |41.31          |
+|**LZAV 3.2**    |505 MB/s       |2720 MB/s      |41.31          |
 |LZ4 1.9.4       |680 MB/s       |4300 MB/s      |47.60          |
 |Snappy 1.1.10   |425 MB/s       |2430 MB/s      |48.22          |
 |LZF 3.6         |320 MB/s       |700 MB/s       |48.15          |
@@ -122,7 +122,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.1**    |470 MB/s       |2260 MB/s      |41.31          |
+|**LZAV 3.2**    |465 MB/s       |2390 MB/s      |41.31          |
 |LZ4 1.9.4       |660 MB/s       |4200 MB/s      |47.60          |
 |Snappy 1.1.10   |545 MB/s       |2150 MB/s      |48.22          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
@@ -141,9 +141,9 @@ author's measurements with TurboBench, on Ryzen 3700X, on Silesia dataset:
 
 ## Notes ##
 
-1. LZAV API is not equivalent to LZ4 nor Snappy API. For example, "dstl"
+1. LZAV API is not equivalent to LZ4 nor Snappy API. For example, the "dstl"
 parameter in the decompressor should specify the original uncompressed length,
-which should have been previously stored in some manner, independent of LZAV.
+which should have been previously stored in some way, independent of LZAV.
 
 2. Run-time memory sanitizers like Valgrind and Dr.Memory may generate the
 "uninitialized read" warning in decompressor's block type 1 handler. This is

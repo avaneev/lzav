@@ -1,5 +1,5 @@
 /**
- * lzav.h version 3.1
+ * lzav.h version 3.2
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -311,6 +311,9 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
  * LZAV_LIT_LEN literals. The lzav_write_fin_1() function should be used to
  * finalize compression.
  *
+ * Except the block previous to the last block, a short literal block
+ * (LLLL!=0) is always followed by a reference block.
+ *
  * @param op Output buffer pointer.
  * @param lc Literal length, in bytes.
  * @param rc Reference length, in bytes, not lesser than mref.
@@ -579,7 +582,7 @@ static inline int lzav_compress_bound( const int srcl )
  * without a header containing data length nor identifier nor checksum.
  *
  * Note that compression algorithm and its output on the same source data may
- * differ between LZAV versions, and may differ on little- and big-endian
+ * differ between LZAV versions, and may differ between little- and big-endian
  * systems. However, the decompression of a compressed data produced by any
  * prior compressor version will stay possible.
  *
@@ -596,11 +599,11 @@ static inline int lzav_compress_bound( const int srcl )
  * pre-allocated buffer is useful if compression is performed during
  * application's operation often: this reduces memory allocation overhead and
  * fragmentation. Note that the access to the supplied buffer is not
- * implicitly thread-safe.
+ * implicitly thread-safe. Buffer's address must be aligned to 32 bits.
  * @param ext_bufl The capacity of the ext_buf, in bytes, should be a
  * power-of-2 value. Set to 0 if ext_buf is 0. The capacity should not be
- * lesser than 4*srcl, not lesser than 256, but not greater than 1
- * MiB. Same ext_bufl value can be used for any smaller sources.
+ * lesser than 4 x srcl, not lesser than 256, but not greater than 1 MiB. Same
+ * ext_bufl value can be used for any smaller sources.
  * @return The length of compressed data, in bytes. Returns 0 if srcl<=0, or
  * if dstl is too small, or if not enough memory.
  */
@@ -801,7 +804,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 		const size_t d = ip - wp; // Reference offset (distance).
 
-		if( LZAV_UNLIKELY(( d <= 7 ) | ( d >= LZAV_WIN_LEN )))
+		if( LZAV_UNLIKELY(( d < 8 ) | ( d > LZAV_WIN_LEN - 1 )))
 		{
 			// Small offsets may be inefficient.
 
@@ -858,7 +861,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 			const size_t rc2 = lzav_match_len( ip - lc, wp - lc, ml );
 
-			if( rc2 >= LZAV_REF_MIN )
+			if( rc2 > LZAV_REF_MIN - 1 )
 			{
 				rc = rc2;
 				ip -= lc;
@@ -929,7 +932,9 @@ static inline int lzav_compress_default( const void* const src,
  * @param[out] dst Destination (decompressed data) buffer pointer. Address
  * alignment is unimportant. Should be different to src.
  * @param srcl Source data length, in bytes, can be 0.
- * @param dstl Expected destination data length, in bytes, can be 0.
+ * @param dstl Expected destination data length, in bytes, can be 0. Should
+ * not be confused with the actual size of the destination buffer (which may
+ * be larger).
  * @return The length of decompressed data, in bytes, or any negative value if
  * some error happened. Always returns a negative value if the resulting
  * decompressed data length differs from dstl. This means that error result
@@ -1017,12 +1022,12 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 				ipd = ip;
 				ip += cc;
 
-				if( LZAV_LIKELY(( op < opet ) & ( ipd < ipe - 15 )))
+				if( LZAV_LIKELY(( op < opet ) & ( ipd < ipe - 15 - 6 )))
 				{
 					bh = *ip;
 					memcpy( op, ipd, 16 );
 					op += cc;
-					continue;
+					goto _refblk; // Reference block follows, if not EOS.
 				}
 			}
 			else
@@ -1036,7 +1041,8 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 				ipd = ip;
 				ip += cc;
 
-				if( LZAV_LIKELY(( op < opet ) & ( ipd < ipe - 63 - 1 )))
+				if( LZAV_LIKELY(( op < opet ) & ( ipd < ipe - 63 - 1 ) &
+					( cc < 65 )))
 				{
 				#if defined( __AVX__ )
 					memcpy( op, ipd, 32 );
@@ -1048,16 +1054,9 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 					memcpy( op + 48, ipd + 48, 16 );
 				#endif // defined( __AVX__ )
 
-					if( LZAV_LIKELY( cc <= 64 ))
-					{
-						bh = *ip;
-						op += cc;
-						continue;
-					}
-
-					ipd += 64;
-					op += 64;
-					cc -= 64;
+					bh = *ip;
+					op += cc;
+					continue;
 				}
 			}
 
@@ -1091,7 +1090,10 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 			continue;
 		}
 
-		size_t cc = bh & 15; // Byte copy count.
+		size_t cc;
+
+	_refblk:
+		cc = bh & 15; // Byte copy count.
 
 		if( LZAV_LIKELY( cc != 0 )) // True, if no additional length byte.
 		{
@@ -1221,7 +1223,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 			LZAV_MEMMOVE( op + 48, ipd + 48, 16 );
 		#endif // defined( __AVX__ )
 
-			if( LZAV_LIKELY( cc <= 64 ))
+			if( LZAV_LIKELY( cc < 65 ))
 			{
 				op += cc;
 				continue;
