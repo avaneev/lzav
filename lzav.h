@@ -1,5 +1,5 @@
 /**
- * lzav.h version 3.2
+ * lzav.h version 3.3
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -840,7 +840,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 			}
 		}
 
-		// Disallow overlapped reference copy.
+		// Disallow overlapped reference copy by using d as max match length.
 
 		size_t ml = ( d > LZAV_REF_LEN ? LZAV_REF_LEN : d );
 
@@ -1044,15 +1044,10 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 				if( LZAV_LIKELY(( op < opet ) & ( ipd < ipe - 63 - 1 ) &
 					( cc < 65 )))
 				{
-				#if defined( __AVX__ )
-					memcpy( op, ipd, 32 );
-					memcpy( op + 32, ipd + 32, 32 );
-				#else // defined( __AVX__ )
 					memcpy( op, ipd, 16 );
 					memcpy( op + 16, ipd + 16, 16 );
 					memcpy( op + 32, ipd + 32, 16 );
 					memcpy( op + 48, ipd + 48, 16 );
-				#endif // defined( __AVX__ )
 
 					bh = *ip;
 					op += cc;
@@ -1111,12 +1106,8 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 					if( LZAV_LIKELY( op < opet ))
 					{
-					#if defined( __AVX__ )
-						LZAV_MEMMOVE( op, ipd, 32 );
-					#else // defined( __AVX__ )
 						LZAV_MEMMOVE( op, ipd, 16 );
 						LZAV_MEMMOVE( op + 16, ipd + 16, 4 );
-					#endif // defined( __AVX__ )
 
 						op += cc;
 						continue;
@@ -1131,12 +1122,8 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 					if( LZAV_LIKELY( op < opet ))
 					{
-					#if defined( __AVX__ )
-						LZAV_MEMMOVE( op, ipd, 32 );
-					#else // defined( __AVX__ )
 						LZAV_MEMMOVE( op, ipd, 16 );
 						LZAV_MEMMOVE( op + 16, ipd + 16, 4 );
-					#endif // defined( __AVX__ )
 
 						op += cc;
 						continue;
@@ -1151,12 +1138,8 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 				if( LZAV_LIKELY( op < opet ))
 				{
-				#if defined( __AVX__ )
-					LZAV_MEMMOVE( op, ipd, 32 );
-				#else // defined( __AVX__ )
 					LZAV_MEMMOVE( op, ipd, 16 );
 					LZAV_MEMMOVE( op + 16, ipd + 16, 4 );
-				#endif // defined( __AVX__ )
 
 					op += cc;
 					continue;
@@ -1213,15 +1196,10 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 
 		if( LZAV_LIKELY( op < opet ))
 		{
-		#if defined( __AVX__ )
-			LZAV_MEMMOVE( op, ipd, 32 );
-			LZAV_MEMMOVE( op + 32, ipd + 32, 32 );
-		#else // defined( __AVX__ )
 			LZAV_MEMMOVE( op, ipd, 16 );
 			LZAV_MEMMOVE( op + 16, ipd + 16, 16 );
 			LZAV_MEMMOVE( op + 32, ipd + 32, 16 );
 			LZAV_MEMMOVE( op + 48, ipd + 48, 16 );
-		#endif // defined( __AVX__ )
 
 			if( LZAV_LIKELY( cc < 65 ))
 			{

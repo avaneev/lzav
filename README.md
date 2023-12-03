@@ -100,7 +100,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.2**    |565 MB/s       |3020 MB/s      |41.31          |
+|**LZAV 3.3**    |565 MB/s       |3020 MB/s      |41.31          |
 |LZ4 1.9.4       |700 MB/s       |4570 MB/s      |47.60          |
 |Snappy 1.1.10   |495 MB/s       |3230 MB/s      |48.22          |
 |LZF 3.6         |395 MB/s       |800 MB/s       |48.15          |
@@ -111,7 +111,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.2**    |505 MB/s       |2720 MB/s      |41.31          |
+|**LZAV 3.3**    |505 MB/s       |2720 MB/s      |41.31          |
 |LZ4 1.9.4       |680 MB/s       |4300 MB/s      |47.60          |
 |Snappy 1.1.10   |425 MB/s       |2430 MB/s      |48.22          |
 |LZF 3.6         |320 MB/s       |700 MB/s       |48.15          |
@@ -122,7 +122,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.2**    |465 MB/s       |2390 MB/s      |41.31          |
+|**LZAV 3.3**    |465 MB/s       |2390 MB/s      |41.31          |
 |LZ4 1.9.4       |660 MB/s       |4200 MB/s      |47.60          |
 |Snappy 1.1.10   |545 MB/s       |2150 MB/s      |48.22          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
@@ -150,6 +150,10 @@ which should have been previously stored in some way, independent of LZAV.
 an expected behavior, and not a bug - this happens because of SIMD
 optimizations that read bytes from the output buffer (within its valid range)
 which were not yet initialized.
+
+3. Compared to Clang, other compilers systematically produce 4% slower LZAV
+code. Compiler architecture tuning (other than generic x86-64) may produce
+varying, including counter-productive, results.
 
 ## Thanks ##
 
