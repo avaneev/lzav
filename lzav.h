@@ -1,5 +1,5 @@
 /**
- * lzav.h version 3.3
+ * lzav.h version 3.4
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -37,7 +37,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define LZAV_API_VER 0x101 // API version, unrelated to code's version.
+#define LZAV_API_VER 0x102 // API version, unrelated to code's version.
 
 // Decompression error codes:
 
@@ -909,6 +909,257 @@ static inline int lzav_compress_default( const void* const src,
 	void* const dst, const int srcl, const int dstl )
 {
 	return( lzav_compress( src, dst, srcl, dstl, 0, 0 ));
+}
+
+/**
+ * Function performs in-memory data compression using the high-ratio LZAV
+ * compression algorithm.
+ *
+ * @param[in] src Source (uncompressed) data pointer.
+ * @param[out] dst Destination (compressed data) buffer pointer. The allocated
+ * size should be at least lzav_compress_bound() bytes large.
+ * @param srcl Source data length, in bytes.
+ * @param dstl Destination buffer's capacity, in bytes.
+ * @return The length of compressed data, in bytes. Returns 0 if srcl<=0, or
+ * if dstl is too small, or if not enough memory.
+ */
+
+static inline int lzav_compress_hi( const void* const src, void* const dst,
+	const int srcl, const int dstl )
+{
+	if( srcl <= 0 || src == 0 || dst == 0 || src == dst ||
+		dstl < lzav_compress_bound( srcl ))
+	{
+		return( 0 );
+	}
+
+	const size_t mref = 5;
+	const size_t mlen = LZAV_REF_LEN - LZAV_REF_MIN + mref;
+
+	if( srcl <= LZAV_LIT_FIN )
+	{
+		// Handle a very short source data.
+
+		*(uint8_t*) dst = (uint8_t) ( LZAV_FMT_CUR << 4 | mref );
+		*( (uint8_t*) dst + 1 ) = (uint8_t) srcl;
+
+		memcpy( (uint8_t*) dst + 2, src, srcl );
+		memset( (uint8_t*) dst + 2 + srcl, 0, LZAV_LIT_FIN - srcl );
+
+		return( 2 + LZAV_LIT_FIN );
+	}
+
+	int htcap = 1 << 8; // Hash-table's capacity (power-of-2).
+
+	while( htcap != ( 1 << 17 ) && htcap * 8 < srcl )
+	{
+		htcap <<= 1;
+	}
+
+	const size_t htsize = htcap * sizeof( uint32_t ) * 2 * 8;
+	uint8_t* ht = (uint8_t*) malloc( htsize ); // The hash-table pointer.
+
+	if( ht == 0 )
+	{
+		return( 0 );
+	}
+
+	const size_t hmask = ( htsize - 1 ) ^ 63; // Hash mask.
+	const uint8_t* ip = (const uint8_t*) src; // Source data pointer.
+	const uint8_t* const ipe = ip + srcl - LZAV_LIT_FIN; // End pointer.
+	const uint8_t* const ipet = ipe - mref + 1; // Hashing threshold.
+	const uint8_t* ipa = ip; // Literals anchor pointer.
+	uint8_t* op = (uint8_t*) dst; // Destination (compressed data) pointer.
+	uint8_t* cbp = 0; // Pointer to the latest offset carry block header.
+
+	ip += 6; // Skip source bytes, to avoid OOB in rc2 match below.
+	*op = (uint8_t) ( LZAV_FMT_CUR << 4 | mref ); // Write prefix byte.
+	op++;
+
+	// Initialize the hash-table. Each hash-table item consists of 8 tuples
+	// (4 initial match bytes; 32-bit source data offset). The last value of
+	// the last tuple is used as head tuple index (an even value). Set source
+	// data offset to avoid rc2 OOB below.
+
+	uint32_t initv[ 2 ] = { 0, 6 };
+
+	if( LZAV_LIKELY( ip < ipet ))
+	{
+		memcpy( initv, ip, 4 );
+	}
+
+	uint32_t* ht32 = (uint32_t*) ht;
+	int i;
+
+	for( i = 0; i < htcap * 8; i++ )
+	{
+		ht32[ 0 ] = initv[ 0 ];
+		ht32[ 1 ] = initv[ 1 ];
+		ht32 += 2;
+	}
+
+	size_t prc = 0; // Length of a previously found match.
+	size_t pd = 0; // Distance of a previously found match.
+	const uint8_t* pip = ip; // Source pointer of a previously found match.
+
+	while( LZAV_LIKELY( ip < ipet ))
+	{
+		// Hash source data (endianness is unimportant for compression
+		// efficiency). Hash is based on the "komihash" math construct, see
+		// https://github.com/avaneev/komihash for details.
+
+		uint32_t iw1;
+		memcpy( &iw1, ip, 4 );
+		const uint32_t Seed1 = 0x243F6A88 ^ iw1;
+		const uint64_t hm = (uint64_t) Seed1 *
+			(uint32_t) ( 0x85A308D3 ^ ip[ 4 ]);
+
+		const size_t hval = (uint32_t) hm ^ (uint32_t) ( hm >> 32 );
+
+		// Hash-table access.
+
+		const uint32_t ipo = (uint32_t) ( ip - (const uint8_t*) src );
+		uint32_t* const hp = (uint32_t*) ( ht + ( hval & hmask ));
+		size_t ti0 = hp[ 15 ]; // Head tuple index.
+
+		// Find source data in hash-table tuples, in up to 7 previous
+		// positions.
+
+		const uint8_t* wp = ip; // Best found window pointer.
+		size_t rc = 0; // Best found match length, 0 - not found.
+		size_t d; // Reference offset (distance).
+		size_t ti = ti0;
+
+		for( i = 0; i < 7; i++ )
+		{
+			const uint8_t* const wp0 = (const uint8_t*) src + hp[ ti + 1 ];
+			d = ip - wp0;
+
+			if( iw1 == hp[ ti ])
+			{
+				// Disallow overlapped reference copy by using d as max match
+				// length.
+
+				size_t ml = ( d > mlen ? mlen : d );
+
+				if( LZAV_UNLIKELY( ip + ml > ipe ))
+				{
+					// Make sure LZAV_LIT_FIN literals remain on finish.
+
+					ml = ipe - ip;
+				}
+
+				const size_t rc0 = 4 + lzav_match_len( ip + 4, wp0 + 4,
+					ml - 4 );
+
+				if( rc0 > rc + ( d > ( 1 << 18 )))
+				{
+					wp = wp0;
+					rc = rc0;
+				}
+			}
+
+			ti = ( ti == 12 ? 0 : ti + 2 );
+		}
+
+		d = ip - wp;
+
+		if(( rc == 0 ) | ( d > mlen ))
+		{
+			// Update a matching entry which is not inside max reference
+			// length's range. Otherwise, source data consisting of same-byte
+			// runs won't compress well.
+
+			ti0 = ( ti0 == 0 ? 12 : ti0 - 2 );
+			hp[ ti0 ] = iw1;
+			hp[ ti0 + 1 ] = ipo;
+			hp[ 15 ] = (uint32_t) ti0;
+		}
+
+		if(( rc < mref + ( d > ( 1 << 18 ))) | ( d < 8 ) |
+			( d > LZAV_WIN_LEN - 1 ))
+		{
+			ip++;
+			continue;
+		}
+
+		// Source data and hash-table entry match of suitable length.
+
+		size_t lc = ip - ipa;
+
+		if( lc != 0 && lc < mref )
+		{
+			// Try to consume literals by finding a match at an earlier
+			// position.
+
+			size_t ml = ( d > mlen ? mlen : d );
+
+			if( LZAV_UNLIKELY( ip + ml > ipe ))
+			{
+				ml = ipe - ip;
+			}
+
+			const size_t rc2 = lzav_match_len( ip - lc, wp - lc, ml );
+
+			if( rc2 > mref - 1 )
+			{
+				rc = rc2;
+				ip -= lc;
+				lc = 0;
+			}
+		}
+
+		if( prc == 0 )
+		{
+			// Save match for a later comparison.
+
+			prc = rc;
+			pd = d;
+			pip = ip;
+			ip++;
+			continue;
+		}
+
+		// Block size overhead estimation and comparison with a previously
+		// found match.
+
+		const int lb = ( lc != 0 );
+		const int sh = 10 + ( lb | ( cbp != 0 )) * 2;
+		const size_t ov = lc + lb + ( lc > 15 ) + 1 +
+			( d >= ( (size_t) 1 << sh )) +
+			( d >= ( (size_t) 1 << ( sh + 8 )));
+
+		const size_t plc = pip - ipa;
+		const int plb = ( plc != 0 );
+		const int psh = 10 + ( plb | ( cbp != 0 )) * 2;
+		const size_t pov = plc + plb + ( plc > 15 ) + 1 +
+			( pd >= ( (size_t) 1 << psh )) +
+			( pd >= ( (size_t) 1 << ( psh + 8 )));
+
+		if( LZAV_LIKELY( prc * ov > rc * pov ))
+		{
+			rc = prc;
+			d = pd;
+			ip = pip;
+			lc = plc;
+		}
+
+		op = lzav_write_blk_1( op, lc, rc, d, ipa, &cbp, mref );
+		ip += rc;
+		ipa = ip;
+		prc = 0;
+	}
+
+	if( prc != 0 )
+	{
+		op = lzav_write_blk_1( op, pip - ipa, prc, pd, ipa, &cbp, mref );
+		ipa = pip + prc;
+	}
+
+	free( ht );
+
+	return( (int) ( lzav_write_fin_1( op, ipe - ipa + LZAV_LIT_FIN, ipa ) -
+		(uint8_t*) dst ));
 }
 
 /**

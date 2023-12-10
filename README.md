@@ -52,10 +52,15 @@ To decompress data:
         // Error handling.
     }
 
+To compress data with a higher ratio, for non-time-critical applications
+(e.g., compression of application's static assets):
+
+    int comp_len = lzav_compress_hi( src_buf, comp_buf, src_len, max_len );
+
 LZAV algorithm and its source code (which is
 [ISO C99](https://en.wikipedia.org/wiki/C99)) were quality-tested on:
 Clang, GCC, MSVC, Intel C++ compilers; x86, x86-64 (Intel, AMD), AArch64
-(Apple Silicon) architectures; Windows 10, CentOS 8 Linux, macOS 13.3.
+(Apple Silicon) architectures; Windows 10, CentOS 8 Linux, macOS 14.1.
 
 ## Comparisons ##
 
@@ -100,10 +105,12 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.3**    |565 MB/s       |3020 MB/s      |41.31          |
+|**LZAV 3.4**    |565 MB/s       |3020 MB/s      |41.31          |
 |LZ4 1.9.4       |700 MB/s       |4570 MB/s      |47.60          |
 |Snappy 1.1.10   |495 MB/s       |3230 MB/s      |48.22          |
 |LZF 3.6         |395 MB/s       |800 MB/s       |48.15          |
+|**LZAV 3.4 HI** |107 MB/s       |2990 MB/s      |36.08          |
+|LZ4HC 1.9.4 -9  |40 MB/s        |4360 MB/s      |36.75          |
 
 ### LLVM clang-cl 16.0.4 x86-64, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz ###
 
@@ -111,10 +118,12 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.3**    |505 MB/s       |2720 MB/s      |41.31          |
+|**LZAV 3.4**    |505 MB/s       |2720 MB/s      |41.31          |
 |LZ4 1.9.4       |680 MB/s       |4300 MB/s      |47.60          |
 |Snappy 1.1.10   |425 MB/s       |2430 MB/s      |48.22          |
 |LZF 3.6         |320 MB/s       |700 MB/s       |48.15          |
+|**LZAV 3.4 HI** |86 MB/s        |2670 MB/s      |36.08          |
+|LZ4HC 1.9.4 -9  |36 MB/s        |4100 MB/s      |36.75          |
 
 ### LLVM clang 12.0.1 x86-64, CentOS 8, Xeon E-2176G (CoffeeLake), 4.5 GHz ###
 
@@ -122,10 +131,12 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.3**    |465 MB/s       |2390 MB/s      |41.31          |
+|**LZAV 3.4**    |465 MB/s       |2390 MB/s      |41.31          |
 |LZ4 1.9.4       |660 MB/s       |4200 MB/s      |47.60          |
 |Snappy 1.1.10   |545 MB/s       |2150 MB/s      |48.22          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
+|**LZAV 3.4 HI** |74 MB/s        |2370 MB/s      |36.08          |
+|LZ4HC 1.9.4 -9  |32 MB/s        |4150 MB/s      |36.75          |
 
 P.S. Popular Zstd's benchmark was not included here, because it is not a pure
 LZ77, much harder to integrate, and has a much larger code size - a different
@@ -151,7 +162,7 @@ an expected behavior, and not a bug - this happens because of SIMD
 optimizations that read bytes from the output buffer (within its valid range)
 which were not yet initialized.
 
-3. Compared to Clang, other compilers systematically produce 4% slower LZAV
+3. Compared to Clang, other compilers systematically produce 5% slower LZAV
 code. Compiler architecture tuning (other than generic x86-64) may produce
 varying, including counter-productive, results.
 
