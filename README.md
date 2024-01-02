@@ -29,33 +29,39 @@ which depends on the way data is compressed.
 
 To compress data:
 
-    #include "lzav.h"
+```c
+#include "lzav.h"
 
-    int max_len = lzav_compress_bound( src_len );
-    void* comp_buf = malloc( max_len ); // Or similar.
-    int comp_len = lzav_compress_default( src_buf, comp_buf, src_len, max_len );
+int max_len = lzav_compress_bound( src_len );
+void* comp_buf = malloc( max_len ); // Or similar.
+int comp_len = lzav_compress_default( src_buf, comp_buf, src_len, max_len );
 
-    if( comp_len == 0 && src_len != 0 )
-    {
-        // Error handling.
-    }
+if( comp_len == 0 && src_len != 0 )
+{
+    // Error handling.
+}
+```
 
 To decompress data:
 
-    #include "lzav.h"
+```c
+#include "lzav.h"
 
-    void* decomp_buf = malloc( src_len ); // Or similar.
-    int l = lzav_decompress( comp_buf, decomp_buf, comp_len, src_len );
+void* decomp_buf = malloc( src_len ); // Or similar.
+int l = lzav_decompress( comp_buf, decomp_buf, comp_len, src_len );
 
-    if( l < 0 )
-    {
-        // Error handling.
-    }
+if( l < 0 )
+{
+    // Error handling.
+}
+```
 
 To compress data with a higher ratio, for non-time-critical applications
 (e.g., compression of application's static assets):
 
-    int comp_len = lzav_compress_hi( src_buf, comp_buf, src_len, max_len );
+```c
+int comp_len = lzav_compress_hi( src_buf, comp_buf, src_len, max_len );
+```
 
 LZAV algorithm and its source code (which is
 [ISO C99](https://en.wikipedia.org/wiki/C99)) were quality-tested on:
