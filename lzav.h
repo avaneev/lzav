@@ -1,5 +1,5 @@
 /**
- * lzav.h version 3.5
+ * lzav.h version 3.6
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -602,8 +602,9 @@ static inline int lzav_compress_bound( const int srcl )
  * implicitly thread-safe. Buffer's address must be aligned to 32 bits.
  * @param ext_bufl The capacity of the ext_buf, in bytes, should be a
  * power-of-2 value. Set to 0 if ext_buf is 0. The capacity should not be
- * lesser than 4 x srcl, not lesser than 256, but not greater than 1 MiB. Same
- * ext_bufl value can be used for any smaller sources.
+ * lesser than 4 x srcl, and not greater than 1 MiB. Same ext_bufl value can
+ * be used for any smaller source data. The ext_bufl value does not affect the
+ * compression algorithm: the ext_buf will not be used, if it is too small.
  * @return The length of compressed data, in bytes. Returns 0 if srcl<=0, or
  * if dstl is too small, or if not enough memory.
  */
@@ -909,7 +910,7 @@ static inline int lzav_compress_default( const void* const src,
 }
 
 /**
- * Function performs in-memory data compression using the high-ratio LZAV
+ * Function performs in-memory data compression using the higher-ratio LZAV
  * compression algorithm.
  *
  * @param[in] src Source (uncompressed) data pointer.
@@ -1007,8 +1008,7 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 
 		uint32_t iw1;
 		memcpy( &iw1, ip, 4 );
-		const uint32_t Seed1 = 0x243F6A88 ^ iw1;
-		const uint64_t hm = (uint64_t) Seed1 *
+		const uint64_t hm = (uint64_t) ( 0x243F6A88 ^ iw1 ) *
 			(uint32_t) ( 0x85A308D3 ^ ip[ 4 ]);
 
 		const size_t hval = (uint32_t) hm ^ (uint32_t) ( hm >> 32 );
@@ -1135,6 +1135,19 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 
 		if( LZAV_LIKELY( prc * ov > rc * pov ))
 		{
+			if( LZAV_UNLIKELY( pip + prc <= ip ))
+			{
+				// A winning previous match does not overlap a current match.
+
+				op = lzav_write_blk_1( op, plc, prc, pd, ipa, &cbp, mref );
+				ipa = pip + prc;
+				prc = rc;
+				pd = d;
+				pip = ip;
+				ip++;
+				continue;
+			}
+
 			rc = prc;
 			d = pd;
 			ip = pip;
