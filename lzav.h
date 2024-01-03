@@ -1,5 +1,5 @@
 /**
- * lzav.h version 3.4
+ * lzav.h version 3.5
  *
  * The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -9,7 +9,7 @@
  *
  * License
  *
- * Copyright (c) 2023 Aleksey Vaneev
+ * Copyright (c) 2023-2024 Aleksey Vaneev
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -681,24 +681,21 @@ static inline int lzav_compress( const void* const src, void* const dst,
 	// (4 initial match bytes; 32-bit source data offset). Set source data
 	// offset to avoid rc2 OOB below.
 
-	uint32_t initv[ 4 ] = { 0, LZAV_REF_MIN, 0, LZAV_REF_MIN };
+	uint32_t initv[ 2 ] = { 0, LZAV_REF_MIN };
 
 	if( LZAV_LIKELY( ip < ipet ))
 	{
 		memcpy( initv, ip, 4 );
-		memcpy( initv + 2, ip, 4 );
 	}
 
 	uint32_t* ht32 = (uint32_t*) ht;
 	int i;
 
-	for( i = 0; i < htcap; i++ )
+	for( i = 0; i < htcap * 2; i++ )
 	{
 		ht32[ 0 ] = initv[ 0 ];
 		ht32[ 1 ] = initv[ 1 ];
-		ht32[ 2 ] = initv[ 2 ];
-		ht32[ 3 ] = initv[ 3 ];
-		ht32 += 4;
+		ht32 += 2;
 	}
 
 	while( LZAV_LIKELY( ip < ipet ))
@@ -978,7 +975,7 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 
 	// Initialize the hash-table. Each hash-table item consists of 8 tuples
 	// (4 initial match bytes; 32-bit source data offset). The last value of
-	// the last tuple is used as head tuple index (an even value). Set source
+	// the last tuple is used as head tuple offset (an even value). Set source
 	// data offset to avoid rc2 OOB below.
 
 	uint32_t initv[ 2 ] = { 0, 6 };
@@ -1020,7 +1017,7 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 
 		const uint32_t ipo = (uint32_t) ( ip - (const uint8_t*) src );
 		uint32_t* const hp = (uint32_t*) ( ht + ( hval & hmask ));
-		size_t ti0 = hp[ 15 ]; // Head tuple index.
+		size_t ti0 = hp[ 15 ]; // Head tuple offset.
 
 		// Find source data in hash-table tuples, in up to 7 previous
 		// positions.
@@ -1032,10 +1029,12 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 
 		for( i = 0; i < 7; i++ )
 		{
+			const uint32_t ww1 = hp[ ti ];
 			const uint8_t* const wp0 = (const uint8_t*) src + hp[ ti + 1 ];
 			d = ip - wp0;
+			ti = ( ti == 12 ? 0 : ti + 2 );
 
-			if( iw1 == hp[ ti ])
+			if( iw1 == ww1 )
 			{
 				// Disallow overlapped reference copy by using d as max match
 				// length.
@@ -1058,8 +1057,6 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 					rc = rc0;
 				}
 			}
-
-			ti = ( ti == 12 ? 0 : ti + 2 );
 		}
 
 		d = ip - wp;

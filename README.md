@@ -1,4 +1,4 @@
-# LZAV - Fast Data Compression Algorithm (in C) #
+# LZAV - Fast Data Compression Algorithm (in C/C++) #
 
 ## Introduction ##
 
@@ -76,11 +76,12 @@ The tables below present performance ballpark numbers of LZAV algorithm
 While LZ4 there seems to be compressing faster, LZAV comparably provides 13.2%
 memory storage cost savings. This is a significant benefit in database and
 file system use cases since compression is only about 30% slower while CPUs
-rarely run at their maximum capacity anyway. In general, LZAV holds a very
-strong position in this class of data compression algorithms, if one considers
-all factors: compression and decompression speeds, compression ratio, and not
-less important - code maintainability: LZAV is maximally portable and has a
-rather small independent codebase.
+rarely run at their maximum capacity anyway, and disk IO times are reduced due
+to a better compression. In general, LZAV holds a very strong position in this
+class of data compression algorithms, if one considers all factors:
+compression and decompression speeds, compression ratio, and not less
+important - code maintainability: LZAV is maximally portable and has a rather
+small independent codebase.
 
 Performance of LZAV is not limited to the presented ballpark numbers.
 Depending on the data being compressed, LZAV can achieve 800 MB/s compression
@@ -111,11 +112,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.4**    |565 MB/s       |3020 MB/s      |41.31          |
+|**LZAV 3.5**    |565 MB/s       |3020 MB/s      |41.31          |
 |LZ4 1.9.4       |700 MB/s       |4570 MB/s      |47.60          |
 |Snappy 1.1.10   |495 MB/s       |3230 MB/s      |48.22          |
 |LZF 3.6         |395 MB/s       |800 MB/s       |48.15          |
-|**LZAV 3.4 HI** |107 MB/s       |2990 MB/s      |36.08          |
+|**LZAV 3.5 HI** |110 MB/s       |2990 MB/s      |36.08          |
 |LZ4HC 1.9.4 -9  |40 MB/s        |4360 MB/s      |36.75          |
 
 ### LLVM clang-cl 16.0.4 x86-64, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz ###
@@ -124,11 +125,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.4**    |505 MB/s       |2720 MB/s      |41.31          |
+|**LZAV 3.5**    |500 MB/s       |2710 MB/s      |41.31          |
 |LZ4 1.9.4       |680 MB/s       |4300 MB/s      |47.60          |
 |Snappy 1.1.10   |425 MB/s       |2430 MB/s      |48.22          |
 |LZF 3.6         |320 MB/s       |700 MB/s       |48.15          |
-|**LZAV 3.4 HI** |86 MB/s        |2670 MB/s      |36.08          |
+|**LZAV 3.5 HI** |88 MB/s        |2710 MB/s      |36.08          |
 |LZ4HC 1.9.4 -9  |36 MB/s        |4100 MB/s      |36.75          |
 
 ### LLVM clang 12.0.1 x86-64, CentOS 8, Xeon E-2176G (CoffeeLake), 4.5 GHz ###
@@ -137,17 +138,17 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.4**    |465 MB/s       |2390 MB/s      |41.31          |
+|**LZAV 3.5**    |465 MB/s       |2390 MB/s      |41.31          |
 |LZ4 1.9.4       |660 MB/s       |4200 MB/s      |47.60          |
 |Snappy 1.1.10   |545 MB/s       |2150 MB/s      |48.22          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
-|**LZAV 3.4 HI** |74 MB/s        |2370 MB/s      |36.08          |
+|**LZAV 3.5 HI** |78 MB/s        |2380 MB/s      |36.08          |
 |LZ4HC 1.9.4 -9  |32 MB/s        |4150 MB/s      |36.75          |
 
 P.S. Popular Zstd's benchmark was not included here, because it is not a pure
 LZ77, much harder to integrate, and has a much larger code size - a different
 league, close to zlib. If you have a practical interest, performance of LZAV
-can be compared to Zstd and other algorithms using precompiled
+can be compared to Zstd and other algorithms, using precompiled
 [TurboBench](https://github.com/powturbo/TurboBench/releases). Here are
 author's measurements with TurboBench, on Ryzen 3700X, on Silesia dataset:
 
@@ -164,9 +165,9 @@ which should have been previously stored in some way, independent of LZAV.
 
 2. Run-time memory sanitizers like Valgrind and Dr.Memory may generate the
 "uninitialized read" warning in decompressor's block type 1 handler. This is
-an expected behavior, and not a bug - this happens because of SIMD
-optimizations that read bytes from the output buffer (within its valid range)
-which were not yet initialized.
+an expected behavior, and not a bug - this happens due to SIMD optimizations
+that read bytes from the output buffer (within its valid range) which were not
+yet initialized.
 
 3. Compared to Clang, other compilers systematically produce 5% slower LZAV
 code. Compiler architecture tuning (other than generic x86-64) may produce
