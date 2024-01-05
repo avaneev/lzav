@@ -1,7 +1,9 @@
 /**
- * lzav.h version 3.6
+ * @file lzav.h
  *
- * The inclusion file for the "LZAV" in-memory data compression and
+ * @version 3.7
+ *
+ * @brief The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
  *
  * Description is available at https://github.com/avaneev/lzav
@@ -37,27 +39,38 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define LZAV_API_VER 0x102 // API version, unrelated to code's version.
+#if !defined( LZAV_FMT_MIN )
+	#define LZAV_FMT_MIN 1 ///< Minimal stream format id supported by the
+		///< decompressor. You may set here (or define via compile options) a
+		///< lower value, and supply "lzav_dX.h" file(s) to support
+		///< decompression of deprecated stream formats.
+#endif // !defined( LZAV_FMT_MIN )
+
+#define LZAV_API_VER 0x103 ///< API version, unrelated to code's version.
+#define LZAV_VER_STR "3.7" ///< LZAV code version string.
 
 // Decompression error codes:
 
-#define LZAV_E_PARAMS -1 // Incorrect function parameters.
-#define LZAV_E_SRCOOB -2 // Source buffer OOB.
-#define LZAV_E_DSTOOB -3 // Destination buffer OOB.
-#define LZAV_E_REFOOB -4 // Back-reference OOB.
-#define LZAV_E_DSTLEN -5 // Decompressed length mismatch.
-#define LZAV_E_UNKFMT -6 // Unknown stream format.
+#define LZAV_E_PARAMS -1 ///< Incorrect function parameters.
+#define LZAV_E_SRCOOB -2 ///< Source buffer OOB.
+#define LZAV_E_DSTOOB -3 ///< Destination buffer OOB.
+#define LZAV_E_REFOOB -4 ///< Back-reference OOB.
+#define LZAV_E_DSTLEN -5 ///< Decompressed length mismatch.
+#define LZAV_E_UNKFMT -6 ///< Unknown stream format.
 
 // NOTE: all macros defined below are for internal use, do not change.
 
-#define LZAV_WIN_LEN ( 1 << 24 ) // LZ77 window length, in bytes.
-#define LZAV_LIT_LEN ( 1 + 15 + 255 + 255 ) // Max literal length, in bytes.
-#define LZAV_REF_MIN 6 // Min reference length, in bytes.
-#define LZAV_REF_LEN ( LZAV_REF_MIN + 15 + 255 ) // Max reference length.
-#define LZAV_LIT_FIN 5 // The number of literals required at finish.
-#define LZAV_FMT_CUR 1 // Stream format identifier used by the compressor.
+#define LZAV_WIN_LEN ( 1 << 24 ) ///< LZ77 window length, in bytes.
+#define LZAV_LIT_LEN ( 1 + 15 + 255 + 255 ) ///< Max literal length, in bytes.
+#define LZAV_REF_MIN 6 ///< Min reference length, in bytes.
+#define LZAV_REF_LEN ( LZAV_REF_MIN + 15 + 255 ) ///< Max reference length.
+#define LZAV_LIT_FIN 5 ///< The number of literals required at finish.
+#define LZAV_FMT_CUR 1 ///< Stream format identifier used by the compressor.
 
-// Endianness definition macro, can be used as a logical constant.
+/**
+ * @def LZAV_LITTLE_ENDIAN
+ * @brief Endianness definition macro, can be used as a logical constant.
+ */
 
 #if defined( __LITTLE_ENDIAN__ ) || defined( __LITTLE_ENDIAN ) || \
 	defined( _LITTLE_ENDIAN ) || defined( _WIN32 ) || defined( i386 ) || \
@@ -82,7 +95,10 @@
 
 #endif // defined( __BIG_ENDIAN__ )
 
-// Macro that denotes availability of 64-bit instructions.
+/**
+ * @def LZAV_ARCH64
+ * @brief Macro that denotes availability of 64-bit instructions.
+ */
 
 #if defined( _WIN64 ) || defined( __x86_64__ ) || defined( __ia64__ ) || \
 	defined( __aarch64__ ) || defined( __arm64 ) || defined( __PPC64__ ) || \
@@ -92,7 +108,10 @@
 
 #endif // 64-bit availability check
 
-// Macro that denotes availability of required GCC-style built-in functions.
+/**
+ * @def LZAV_GCC_BUILTINS
+ * @brief Macro that denotes availability of GCC-style built-in functions.
+ */
 
 #if defined( __GNUC__ ) || defined( __clang__ ) || \
 	defined( __IBMC__ ) || defined( __IBMCPP__ ) || defined( __COMPCERT__ )
@@ -101,8 +120,15 @@
 
 #endif // GCC built-ins.
 
-// In-place endianness-correction macros, for singular variables of matching
-// bit-size.
+/**
+ * @def LZAV_IEC16
+ * @brief In-place endianness-correction macro, for singular 16-bit variables.
+ */
+
+/**
+ * @def LZAV_IEC32
+ * @brief In-place endianness-correction macro, for singular 32-bit variables.
+ */
 
 #if LZAV_LITTLE_ENDIAN
 
@@ -134,8 +160,17 @@
 
 #endif // LZAV_LITTLE_ENDIAN
 
-// Likelihood macros that are used for manually-guided micro-optimization
-// (on Apple Silicon these guidances are slightly counter-productive).
+/**
+ * @def LZAV_LIKELY
+ * @brief Likelihood macro that is used for manually-guided
+ * micro-optimization.
+ */
+
+/**
+ * @def LZAV_UNLIKELY
+ * @brief Unlikelihood macro that is used for manually-guided
+ * micro-optimization.
+ */
 
 #if defined( LZAV_GCC_BUILTINS ) && \
 	!( defined( __aarch64__ ) && defined( __APPLE__ ))
@@ -155,6 +190,8 @@
 #endif // defined( _MSC_VER ) && !defined( LZAV_GCC_BUILTINS )
 
 /**
+ * @brief Data match length finding function.
+ *
  * Function finds the number of continuously-matching leading bytes between
  * two buffers. This function is well-optimized for a wide variety of
  * compilers and platforms.
@@ -285,6 +322,8 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 }
 
 /**
+ * @brief Internal LZAV block header writing function (stream format 1).
+ *
  * Internal function writes a block to the output buffer. This function can be
  * used in custom compression algorithms.
  *
@@ -501,6 +540,8 @@ static inline uint8_t* lzav_write_blk_1( uint8_t* op, size_t lc, size_t rc,
 }
 
 /**
+ * @brief Internal LZAV finishing function (stream format 1).
+ *
  * Internal function writes finishing literal block(s) to the output buffer.
  * This function can be used in custom compression algorithms.
  *
@@ -561,6 +602,8 @@ static inline uint8_t* lzav_write_fin_1( uint8_t* op, size_t lc,
 }
 
 /**
+ * @brief Function returns buffer size required for LZAV compression.
+ *
  * @param srcl The length of the source data to be compressed.
  * @return The required allocation size for destination compression buffer.
  * Always a positive value.
@@ -577,6 +620,8 @@ static inline int lzav_compress_bound( const int srcl )
 }
 
 /**
+ * @brief LZAV compression function, with external buffer option.
+ *
  * Function performs in-memory data compression using the LZAV compression
  * algorithm and stream format. The function produces a "raw" compressed data,
  * without a header containing data length nor identifier nor checksum.
@@ -674,15 +719,15 @@ static inline int lzav_compress( const void* const src, void* const dst,
 		// Two-factor average: success (0-64) by average reference length.
 	int rndb = 0; // PRNG bit derived from the non-matching offset.
 
-	ip += LZAV_REF_MIN; // Skip source bytes, to avoid OOB in rc2 match below.
+	ip += 16; // Skip source bytes, to avoid OOB in back-match.
 	*op = LZAV_FMT_CUR << 4 | LZAV_REF_MIN; // Write prefix byte.
 	op++;
 
 	// Initialize the hash-table. Each hash-table item consists of 2 tuples
 	// (4 initial match bytes; 32-bit source data offset). Set source data
-	// offset to avoid rc2 OOB below.
+	// offset to avoid OOB in back-match.
 
-	uint32_t initv[ 2 ] = { 0, LZAV_REF_MIN };
+	uint32_t initv[ 2 ] = { 0, 16 };
 
 	if( LZAV_LIKELY( ip < ipet ))
 	{
@@ -719,6 +764,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 		uint32_t* const hp = (uint32_t*) ( ht + ( hval & hmask ));
 		const uint32_t hw1 = hp[ 0 ]; // Tuple 1's match word.
 		const uint8_t* wp; // At window pointer, 0-not found.
+		size_t d, ml, lc, rc;
 
 		// Find source data in hash-table tuples.
 
@@ -733,19 +779,17 @@ static inline int lzav_compress( const void* const src, void* const dst,
 				{
 					hp[ 2 ] = iw1;
 					hp[ 3 ] = ipo;
-					wp = 0;
+					goto _nomatch;
 				}
-				else
-				{
-					wp = (const uint8_t*) src + hp[ 3 ];
-					memcpy( &ww2, wp + 4, 2 );
 
-					if( LZAV_UNLIKELY( iw2 != ww2 ))
-					{
-						hp[ 0 ] = iw1;
-						hp[ 1 ] = ipo;
-						wp = 0;
-					}
+				wp = (const uint8_t*) src + hp[ 3 ];
+				memcpy( &ww2, wp + 4, 2 );
+
+				if( LZAV_UNLIKELY( iw2 != ww2 ))
+				{
+					hp[ 0 ] = iw1;
+					hp[ 1 ] = ipo;
+					goto _nomatch;
 				}
 			}
 		}
@@ -755,52 +799,21 @@ static inline int lzav_compress( const void* const src, void* const dst,
 			{
 				hp[ 2 ] = iw1;
 				hp[ 3 ] = ipo;
-				wp = 0;
+				goto _nomatch;
 			}
-			else
-			{
-				wp = (const uint8_t*) src + hp[ 3 ];
-				memcpy( &ww2, wp + 4, 2 );
 
-				if( LZAV_UNLIKELY( iw2 != ww2 ))
-				{
-					hp[ 0 ] = iw1;
-					hp[ 1 ] = ipo;
-					wp = 0;
-				}
+			wp = (const uint8_t*) src + hp[ 3 ];
+			memcpy( &ww2, wp + 4, 2 );
+
+			if( LZAV_UNLIKELY( iw2 != ww2 ))
+			{
+				hp[ 0 ] = iw1;
+				hp[ 1 ] = ipo;
+				goto _nomatch;
 			}
 		}
 
-		if( LZAV_LIKELY( wp == 0 ))
-		{
-			mavg -= mavg >> 11;
-
-			if( mavg < ( 200 << 15 ) && ip != ipa ) // Speed-up threshold.
-			{
-				// Compression speed-up technique that keeps the number of
-				// hash evaluations around 45% of compressed data length.
-				// In some cases reduces the number of blocks by several
-				// percent.
-
-				ip += 1 + rndb; // Use PRNG bit to dither match positions.
-				rndb = ipo & 1; // Delay to decorrelate from current match.
-
-				if( LZAV_UNLIKELY( mavg < ( 130 << 15 )))
-				{
-					ip++;
-
-					if( LZAV_UNLIKELY( mavg < ( 100 << 15 )))
-					{
-						ip += 100 - ( mavg >> 15 ); // Gradually faster.
-					}
-				}
-			}
-
-			ip++;
-			continue;
-		}
-
-		const size_t d = ip - wp; // Reference offset (distance).
+		d = ip - wp; // Reference offset (distance).
 
 		if( LZAV_UNLIKELY(( d < 8 ) | ( d > LZAV_WIN_LEN - 1 )))
 		{
@@ -840,7 +853,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 		// Disallow overlapped reference copy by using d as max match length.
 
-		size_t ml = ( d > LZAV_REF_LEN ? LZAV_REF_LEN : d );
+		ml = ( d > LZAV_REF_LEN ? LZAV_REF_LEN : d );
 
 		if( LZAV_UNLIKELY( ip + ml > ipe ))
 		{
@@ -849,34 +862,54 @@ static inline int lzav_compress( const void* const src, void* const dst,
 			ml = ipe - ip;
 		}
 
-		size_t lc = ip - ipa;
-		size_t rc = 0;
+		rc = LZAV_REF_MIN + lzav_match_len( ip + LZAV_REF_MIN,
+			wp + LZAV_REF_MIN, ml - LZAV_REF_MIN );
 
-		if( lc != 0 && lc < LZAV_REF_MIN )
+		lc = ip - ipa;
+
+		if( LZAV_UNLIKELY( lc != 0 ) && lc < 17 )
 		{
-			// Try to consume literals by finding a match at an earlier
-			// position.
+			// Try to consume literals by finding a match at back-position.
 
-			const size_t rc2 = lzav_match_len( ip - lc, wp - lc, ml );
-
-			if( rc2 > LZAV_REF_MIN - 1 )
+			while( lc != 0 && (( rc < ml ) & ( ip[ -1 ] == wp[ -1 ])))
 			{
-				rc = rc2;
-				ip -= lc;
-				lc = 0;
+				rc++;
+				wp--;
+				ip--;
+				lc--;
 			}
-		}
-
-		if( LZAV_LIKELY( rc == 0 ))
-		{
-			rc = LZAV_REF_MIN + lzav_match_len( ip + LZAV_REF_MIN,
-				wp + LZAV_REF_MIN, ml - LZAV_REF_MIN );
 		}
 
 		op = lzav_write_blk_1( op, lc, rc, d, ipa, &cbp, LZAV_REF_MIN );
 		ip += rc;
 		ipa = ip;
 		mavg += (( (int) rc << 22 ) - mavg ) >> 10;
+		continue;
+
+	_nomatch:
+		mavg -= mavg >> 11;
+
+		if( mavg < ( 200 << 15 ) && ip != ipa ) // Speed-up threshold.
+		{
+			// Compression speed-up technique that keeps the number of hash
+			// evaluations around 45% of compressed data length. In some cases
+			// reduces the number of blocks by several percent.
+
+			ip += 1 + rndb; // Use PRNG bit to dither match positions.
+			rndb = ipo & 1; // Delay to decorrelate from current match.
+
+			if( LZAV_UNLIKELY( mavg < ( 130 << 15 )))
+			{
+				ip++;
+
+				if( LZAV_UNLIKELY( mavg < ( 100 << 15 )))
+				{
+					ip += 100 - ( mavg >> 15 ); // Gradually faster.
+				}
+			}
+		}
+
+		ip++;
 	}
 
 	if( alloc_buf != 0 )
@@ -889,10 +922,12 @@ static inline int lzav_compress( const void* const src, void* const dst,
 }
 
 /**
+ * @brief Default LZAV compression function.
+ *
  * Function performs in-memory data compression using the LZAV compression
  * algorithm, with the default settings.
  *
- * See the lzav_compress() function for more detailed description.
+ * See the lzav_compress() function for a more detailed description.
  *
  * @param[in] src Source (uncompressed) data pointer.
  * @param[out] dst Destination (compressed data) buffer pointer. The allocated
@@ -910,6 +945,8 @@ static inline int lzav_compress_default( const void* const src,
 }
 
 /**
+ * @brief Higher-ratio LZAV compression function, much slower.
+ *
  * Function performs in-memory data compression using the higher-ratio LZAV
  * compression algorithm.
  *
@@ -964,27 +1001,17 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 
 	const size_t hmask = ( htsize - 1 ) ^ 63; // Hash mask.
 	const uint8_t* ip = (const uint8_t*) src; // Source data pointer.
-	const uint8_t* const ipe = ip + srcl - LZAV_LIT_FIN; // End pointer.
-	const uint8_t* const ipet = ipe - mref + 1; // Hashing threshold.
+	const uint8_t* const ipe = ip + srcl; // End pointer.
 	const uint8_t* ipa = ip; // Literals anchor pointer.
 	uint8_t* op = (uint8_t*) dst; // Destination (compressed data) pointer.
 	uint8_t* cbp = 0; // Pointer to the latest offset carry block header.
 
-	ip += 6; // Skip source bytes, to avoid OOB in rc2 match below.
-	*op = (uint8_t) ( LZAV_FMT_CUR << 4 | mref ); // Write prefix byte.
-	op++;
-
 	// Initialize the hash-table. Each hash-table item consists of 8 tuples
 	// (4 initial match bytes; 32-bit source data offset). The last value of
-	// the last tuple is used as head tuple offset (an even value). Set source
-	// data offset to avoid rc2 OOB below.
+	// the last tuple is used as head tuple offset (an even value).
 
-	uint32_t initv[ 2 ] = { 0, 6 };
-
-	if( LZAV_LIKELY( ip < ipet ))
-	{
-		memcpy( initv, ip, 4 );
-	}
+	uint32_t initv[ 2 ] = { 0, 0 };
+	memcpy( initv, ip, 4 );
 
 	uint32_t* ht32 = (uint32_t*) ht;
 	int i;
@@ -1000,7 +1027,10 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 	size_t pd = 0; // Distance of a previously found match.
 	const uint8_t* pip = ip; // Source pointer of a previously found match.
 
-	while( LZAV_LIKELY( ip < ipet ))
+	*op = (uint8_t) ( LZAV_FMT_CUR << 4 | mref ); // Write prefix byte.
+	op++;
+
+	while( LZAV_LIKELY( ip < ipe - ( LZAV_LIT_FIN + mref - 1 )))
 	{
 		// Hash source data (endianness is unimportant for compression
 		// efficiency). Hash is based on the "komihash" math construct, see
@@ -1027,34 +1057,61 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 		size_t d; // Reference offset (distance).
 		size_t ti = ti0;
 
-		for( i = 0; i < 7; i++ )
+		if( LZAV_LIKELY( ip + mlen <= ipe - LZAV_LIT_FIN ))
 		{
-			const uint32_t ww1 = hp[ ti ];
-			const uint8_t* const wp0 = (const uint8_t*) src + hp[ ti + 1 ];
-			d = ip - wp0;
-			ti = ( ti == 12 ? 0 : ti + 2 );
+			// Optimized match-finding.
 
-			if( iw1 == ww1 )
+			for( i = 0; i < 7; i++ )
 			{
-				// Disallow overlapped reference copy by using d as max match
-				// length.
+				const uint32_t ww1 = hp[ ti ];
+				const uint8_t* const wp0 = (const uint8_t*) src + hp[ ti + 1 ];
+				d = ip - wp0;
+				ti = ( ti == 12 ? 0 : ti + 2 );
 
-				size_t ml = ( d > mlen ? mlen : d );
-
-				if( LZAV_UNLIKELY( ip + ml > ipe ))
+				if( iw1 == ww1 )
 				{
-					// Make sure LZAV_LIT_FIN literals remain on finish.
+					const size_t rc0 = 4 + lzav_match_len( ip + 4, wp0 + 4,
+						( d > mlen ? mlen : d ) - 4 );
 
-					ml = ipe - ip;
+					if( rc0 > rc + ( d > ( 1 << 18 )))
+					{
+						wp = wp0;
+						rc = rc0;
+					}
 				}
+			}
+		}
+		else
+		{
+			for( i = 0; i < 7; i++ )
+			{
+				const uint32_t ww1 = hp[ ti ];
+				const uint8_t* const wp0 = (const uint8_t*) src + hp[ ti + 1 ];
+				d = ip - wp0;
+				ti = ( ti == 12 ? 0 : ti + 2 );
 
-				const size_t rc0 = 4 + lzav_match_len( ip + 4, wp0 + 4,
-					ml - 4 );
-
-				if( rc0 > rc + ( d > ( 1 << 18 )))
+				if( iw1 == ww1 )
 				{
-					wp = wp0;
-					rc = rc0;
+					// Disallow overlapped reference copy by using d as max
+					// match length.
+
+					size_t ml = ( d > mlen ? mlen : d );
+
+					if( LZAV_UNLIKELY( ip + ml > ipe - LZAV_LIT_FIN ))
+					{
+						// Make sure LZAV_LIT_FIN literals remain on finish.
+
+						ml = ipe - ip - LZAV_LIT_FIN;
+					}
+
+					const size_t rc0 = 4 + lzav_match_len( ip + 4, wp0 + 4,
+						ml - 4 );
+
+					if( rc0 > rc + ( d > ( 1 << 18 )))
+					{
+						wp = wp0;
+						rc = rc0;
+					}
 				}
 			}
 		}
@@ -1082,28 +1139,44 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 
 		// Source data and hash-table entry match of suitable length.
 
+		const uint8_t* const ip0 = ip;
 		size_t lc = ip - ipa;
 
-		if( lc != 0 && lc < mref )
+		if( LZAV_UNLIKELY( lc != 0 ))
 		{
-			// Try to consume literals by finding a match at an earlier
-			// position.
+			// Try to consume literals by finding a match at back-position.
 
 			size_t ml = ( d > mlen ? mlen : d );
 
-			if( LZAV_UNLIKELY( ip + ml > ipe ))
+			if( LZAV_UNLIKELY( ip + ml > ipe - LZAV_LIT_FIN ))
 			{
-				ml = ipe - ip;
+				ml = ipe - ip - LZAV_LIT_FIN;
 			}
 
-			const size_t rc2 = lzav_match_len( ip - lc, wp - lc, ml );
+			size_t bml = wp - (const uint8_t*) src;
 
-			if( rc2 > mref - 1 )
+			if( LZAV_LIKELY( bml > lc ))
 			{
-				rc = rc2;
-				ip -= lc;
-				lc = 0;
+				bml = lc;
 			}
+
+			if( LZAV_UNLIKELY( rc + bml > ml ))
+			{
+				bml = ml - rc;
+			}
+
+			rc += bml;
+			lc -= bml;
+
+			while( bml != 0 && ip[ -1 ] == wp[ -1 ])
+			{
+				ip--;
+				wp--;
+				bml--;
+			}
+
+			rc -= bml;
+			lc += bml;
 		}
 
 		if( prc == 0 )
@@ -1113,7 +1186,7 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 			prc = rc;
 			pd = d;
 			pip = ip;
-			ip++;
+			ip = ip0 + 1;
 			continue;
 		}
 
@@ -1168,64 +1241,29 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 
 	free( ht );
 
-	return( (int) ( lzav_write_fin_1( op, ipe - ipa + LZAV_LIT_FIN, ipa ) -
-		(uint8_t*) dst ));
+	return( (int) ( lzav_write_fin_1( op, ipe - ipa, ipa ) - (uint8_t*) dst ));
 }
 
 /**
+ * @brief Internal LZAV decompression function (stream format 1).
+ *
  * Function decompresses "raw" data previously compressed into the LZAV stream
- * format. Stream format 1.
+ * format 1.
  *
- * Note that while the function does perform checks to avoid OOB memory
- * accesses, and checks for decompressed data length equality, this is not a
- * strict guarantee of a valid decompression. In cases when the compressed
- * data is stored in a long-term storage without embedded data integrity
- * mechanisms (e.g., a database without RAID 1 guarantee, a binary container
- * without a digital signature nor CRC), a checksum (hash) of the original
- * uncompressed data should be stored, and then evaluated against that of the
- * decompressed data. Also, a separate checksum (hash) of application-defined
- * header, which contains uncompressed and compressed data lengths, should be
- * checked before decompression. A high-performance "komihash" hash function
- * can be used to obtain a hash value of the data.
+ * This function should not be called directly since it does not check the
+ * format identifier.
  *
- * @param[in] src Source (compressed) data pointer, can be 0 if srcl==0.
- * Address alignment is unimportant.
- * @param[out] dst Destination (decompressed data) buffer pointer. Address
- * alignment is unimportant. Should be different to src.
- * @param srcl Source data length, in bytes, can be 0.
- * @param dstl Expected destination data length, in bytes, can be 0. Should
- * not be confused with the actual size of the destination buffer (which may
- * be larger).
+ * @param[in] src Source (compressed) data pointer.
+ * @param[out] dst Destination (decompressed data) buffer pointer.
+ * @param srcl Source data length, in bytes.
+ * @param dstl Expected destination data length, in bytes.
  * @return The length of decompressed data, in bytes, or any negative value if
- * some error happened. Always returns a negative value if the resulting
- * decompressed data length differs from dstl. This means that error result
- * handling requires just a check for a negative return value (see the
- * LZAV_E_x macros for possible values).
+ * some error happened.
  */
 
-static inline int lzav_decompress( const void* const src, void* const dst,
+static inline int lzav_decompress_1( const void* const src, void* const dst,
 	const int srcl, const int dstl )
 {
-	if( srcl < 0 )
-	{
-		return( LZAV_E_PARAMS );
-	}
-
-	if( srcl == 0 )
-	{
-		return( dstl == 0 ? 0 : LZAV_E_PARAMS );
-	}
-
-	if( src == 0 || dst == 0 || src == dst || dstl <= 0 )
-	{
-		return( LZAV_E_PARAMS );
-	}
-
-	if(( *(const uint8_t*) src >> 4 ) != 1 )
-	{
-		return( LZAV_E_UNKFMT );
-	}
-
 	const uint8_t* ip = (const uint8_t*) src; // Compressed data pointer.
 	const uint8_t* const ipe = ip + srcl; // End pointer.
 	const uint8_t* const ipet = ipe - 5; // Header read threshold LZAV_LIT_FIN.
@@ -1493,6 +1531,84 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 	}
 
 	return( (int) ( op - (uint8_t*) dst ));
+
+	#undef LZAV_LOAD16
+	#undef LZAV_LOAD32
+	#undef LZAV_MEMMOVE
+	#undef LZAV_SET_IPD_CV
+	#undef LZAV_SET_IPD
+}
+
+#if LZAV_FMT_MIN < 1
+	#include "lzav_d0.h" // For deprecated stream format 0.
+#endif // LZAV_FMT_MIN < 1
+
+/**
+ * @brief LZAV decompression function.
+ *
+ * Function decompresses "raw" data previously compressed into the LZAV stream
+ * format.
+ *
+ * Note that while the function does perform checks to avoid OOB memory
+ * accesses, and checks for decompressed data length equality, this is not a
+ * strict guarantee of a valid decompression. In cases when the compressed
+ * data is stored in a long-term storage without embedded data integrity
+ * mechanisms (e.g., a database without RAID 1 guarantee, a binary container
+ * without a digital signature nor CRC), a checksum (hash) of the original
+ * uncompressed data should be stored, and then evaluated against that of the
+ * decompressed data. Also, a separate checksum (hash) of application-defined
+ * header, which contains uncompressed and compressed data lengths, should be
+ * checked before decompression. A high-performance "komihash" hash function
+ * can be used to obtain a hash value of the data.
+ *
+ * @param[in] src Source (compressed) data pointer, can be 0 if srcl==0.
+ * Address alignment is unimportant.
+ * @param[out] dst Destination (decompressed data) buffer pointer. Address
+ * alignment is unimportant. Should be different to src.
+ * @param srcl Source data length, in bytes, can be 0.
+ * @param dstl Expected destination data length, in bytes, can be 0. Should
+ * not be confused with the actual size of the destination buffer (which may
+ * be larger).
+ * @return The length of decompressed data, in bytes, or any negative value if
+ * some error happened. Always returns a negative value if the resulting
+ * decompressed data length differs from dstl. This means that error result
+ * handling requires just a check for a negative return value (see the
+ * LZAV_E_x macros for possible values).
+ */
+
+static inline int lzav_decompress( const void* const src, void* const dst,
+	const int srcl, const int dstl )
+{
+	if( srcl < 0 )
+	{
+		return( LZAV_E_PARAMS );
+	}
+
+	if( srcl == 0 )
+	{
+		return( dstl == 0 ? 0 : LZAV_E_PARAMS );
+	}
+
+	if( src == 0 || dst == 0 || src == dst || dstl <= 0 )
+	{
+		return( LZAV_E_PARAMS );
+	}
+
+	const int fmt = *(const uint8_t*) src >> 4;
+
+	if( fmt == 1 )
+	{
+		return( lzav_decompress_1( src, dst, srcl, dstl ));
+	}
+
+#if LZAV_FMT_MIN < 1
+	if( fmt == 0 )
+	{
+		return( lzav_decompress_0( src, dst, srcl, dstl ));
+	}
+#endif // LZAV_FMT_MIN < 1
+
+	return( LZAV_E_UNKFMT );
 }
 
 #endif // LZAV_INCLUDED
