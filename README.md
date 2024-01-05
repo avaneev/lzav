@@ -33,7 +33,7 @@ To compress data:
 #include "lzav.h"
 
 int max_len = lzav_compress_bound( src_len );
-void* comp_buf = malloc( max_len ); // Or similar.
+void* comp_buf = malloc( max_len );
 int comp_len = lzav_compress_default( src_buf, comp_buf, src_len, max_len );
 
 if( comp_len == 0 && src_len != 0 )
@@ -47,7 +47,7 @@ To decompress data:
 ```c
 #include "lzav.h"
 
-void* decomp_buf = malloc( src_len ); // Or similar.
+void* decomp_buf = malloc( src_len );
 int l = lzav_decompress( comp_buf, decomp_buf, comp_len, src_len );
 
 if( l < 0 )
@@ -60,7 +60,16 @@ To compress data with a higher ratio, for non-time-critical uses (e.g.,
 compression of application's static assets):
 
 ```c
+#include "lzav.h"
+
+int max_len = lzav_compress_bound_hi( src_len ); // Note another bound function!
+void* comp_buf = malloc( max_len );
 int comp_len = lzav_compress_hi( src_buf, comp_buf, src_len, max_len );
+
+if( comp_len == 0 && src_len != 0 )
+{
+    // Error handling.
+}
 ```
 
 LZAV algorithm and its source code (which is
@@ -112,11 +121,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.7**    |562 MB/s       |3020 MB/s      |41.14          |
+|**LZAV 3.8**    |562 MB/s       |3020 MB/s      |41.14          |
 |LZ4 1.9.4       |700 MB/s       |4570 MB/s      |47.60          |
 |Snappy 1.1.10   |495 MB/s       |3230 MB/s      |48.22          |
 |LZF 3.6         |395 MB/s       |800 MB/s       |48.15          |
-|**LZAV 3.7 HI** |117 MB/s       |2980 MB/s      |35.84          |
+|**LZAV 3.8 HI** |117 MB/s       |2980 MB/s      |35.84          |
 |LZ4HC 1.9.4 -9  |40 MB/s        |4360 MB/s      |36.75          |
 
 ### LLVM clang-cl 16.0.4 x86-64, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz ###
@@ -125,11 +134,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.7**    |500 MB/s       |2680 MB/s      |41.14          |
+|**LZAV 3.8**    |500 MB/s       |2700 MB/s      |41.14          |
 |LZ4 1.9.4       |680 MB/s       |4300 MB/s      |47.60          |
 |Snappy 1.1.10   |425 MB/s       |2430 MB/s      |48.22          |
 |LZF 3.6         |320 MB/s       |700 MB/s       |48.15          |
-|**LZAV 3.7 HI** |101 MB/s       |2690 MB/s      |35.84          |
+|**LZAV 3.8 HI** |101 MB/s       |2680 MB/s      |35.84          |
 |LZ4HC 1.9.4 -9  |36 MB/s        |4100 MB/s      |36.75          |
 
 ### LLVM clang 12.0.1 x86-64, CentOS 8, Xeon E-2176G (CoffeeLake), 4.5 GHz ###
@@ -138,11 +147,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.7**    |480 MB/s       |2380 MB/s      |41.14          |
+|**LZAV 3.8**    |480 MB/s       |2380 MB/s      |41.14          |
 |LZ4 1.9.4       |660 MB/s       |4200 MB/s      |47.60          |
 |Snappy 1.1.10   |545 MB/s       |2150 MB/s      |48.22          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
-|**LZAV 3.7 HI** |90 MB/s        |2270 MB/s      |35.84          |
+|**LZAV 3.8 HI** |90 MB/s        |2270 MB/s      |35.84          |
 |LZ4HC 1.9.4 -9  |32 MB/s        |4150 MB/s      |36.75          |
 
 P.S. Popular Zstd's benchmark was not included here, because it is not a pure

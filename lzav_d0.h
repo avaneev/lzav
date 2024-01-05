@@ -1,7 +1,7 @@
 /**
  * @file lzav_d0.h
  *
- * @version 1.5.1
+ * @version 1.5.2
  *
  * @brief Optional header file for deprecated LZAV stream format 0
  * decompression.
@@ -42,7 +42,8 @@
  * Function decompresses "raw" data previously compressed into the LZAV stream
  * format 0.
  *
- * This function should not be called directly.
+ * This function should not be called directly since it does not check the
+ * format identifier.
  *
  * @param[in] src Source (compressed) data pointer.
  * @param[out] dst Destination (decompressed data) buffer pointer.

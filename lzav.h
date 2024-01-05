@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 3.7
+ * @version 3.8
  *
  * @brief The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -46,8 +46,8 @@
 		///< decompression of deprecated stream formats.
 #endif // !defined( LZAV_FMT_MIN )
 
-#define LZAV_API_VER 0x103 ///< API version, unrelated to code's version.
-#define LZAV_VER_STR "3.7" ///< LZAV code version string.
+#define LZAV_API_VER 0x104 ///< API version, unrelated to code's version.
+#define LZAV_VER_STR "3.8" ///< LZAV code version string.
 
 // Decompression error codes:
 
@@ -613,10 +613,35 @@ static inline int lzav_compress_bound( const int srcl )
 {
 	if( srcl <= 0 )
 	{
-		return( 8 );
+		return( 16 );
 	}
 
-	return( srcl + srcl * 3 / LZAV_LIT_LEN + 8 );
+	const uint64_t l = (uint64_t) srcl;
+
+	return( (int) (( l * 2 + l + LZAV_LIT_LEN - 1 ) / LZAV_LIT_LEN ) +
+		srcl + 16 );
+}
+
+/**
+ * @brief Function returns buffer size required for the higher-ratio LZAV
+ * compression.
+ *
+ * @param srcl The length of the source data to be compressed.
+ * @return The required allocation size for destination compression buffer.
+ * Always a positive value.
+ */
+
+static inline int lzav_compress_bound_hi( const int srcl )
+{
+	if( srcl <= 0 )
+	{
+		return( 16 );
+	}
+
+	const uint64_t l1 = ( (uint64_t) srcl * 16 + 20 ) / 21;
+	const int l2 = srcl - (int) l1;
+
+	return( (int) (( l1 * 2 + 15 ) / 16 ) - l2 / 5 + srcl + 16 );
 }
 
 /**
