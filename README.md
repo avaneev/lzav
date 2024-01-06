@@ -22,8 +22,8 @@ of uncompressed data may be required, depending on application's guarantees.
 
 The internal functions available in the `lzav.h` file allow you to easily
 implement, and experiment with, your own compression algorithms. LZAV stream
-format and decompressor have a potential of very high decompression speeds,
-which depends on the way data is compressed.
+format and decompressor have a potential of high decompression speeds and
+compression ratios, which depends on the way data is compressed.
 
 ## Usage Information ##
 
@@ -121,11 +121,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.8**    |562 MB/s       |3020 MB/s      |41.14          |
+|**LZAV 3.9**    |562 MB/s       |3040 MB/s      |41.14          |
 |LZ4 1.9.4       |700 MB/s       |4570 MB/s      |47.60          |
 |Snappy 1.1.10   |495 MB/s       |3230 MB/s      |48.22          |
 |LZF 3.6         |395 MB/s       |800 MB/s       |48.15          |
-|**LZAV 3.8 HI** |117 MB/s       |2980 MB/s      |35.84          |
+|**LZAV 3.9 HI** |117 MB/s       |2990 MB/s      |35.84          |
 |LZ4HC 1.9.4 -9  |40 MB/s        |4360 MB/s      |36.75          |
 
 ### LLVM clang-cl 16.0.4 x86-64, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz ###
@@ -134,11 +134,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.8**    |500 MB/s       |2700 MB/s      |41.14          |
+|**LZAV 3.9**    |500 MB/s       |2750 MB/s      |41.14          |
 |LZ4 1.9.4       |680 MB/s       |4300 MB/s      |47.60          |
 |Snappy 1.1.10   |425 MB/s       |2430 MB/s      |48.22          |
 |LZF 3.6         |320 MB/s       |700 MB/s       |48.15          |
-|**LZAV 3.8 HI** |101 MB/s       |2680 MB/s      |35.84          |
+|**LZAV 3.9 HI** |101 MB/s       |2680 MB/s      |35.84          |
 |LZ4HC 1.9.4 -9  |36 MB/s        |4100 MB/s      |36.75          |
 
 ### LLVM clang 12.0.1 x86-64, CentOS 8, Xeon E-2176G (CoffeeLake), 4.5 GHz ###
@@ -147,11 +147,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.8**    |480 MB/s       |2380 MB/s      |41.14          |
+|**LZAV 3.9**    |475 MB/s       |2280 MB/s      |41.14          |
 |LZ4 1.9.4       |660 MB/s       |4200 MB/s      |47.60          |
 |Snappy 1.1.10   |545 MB/s       |2150 MB/s      |48.22          |
 |LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
-|**LZAV 3.8 HI** |90 MB/s        |2270 MB/s      |35.84          |
+|**LZAV 3.9 HI** |91 MB/s        |2230 MB/s      |35.84          |
 |LZ4HC 1.9.4 -9  |32 MB/s        |4150 MB/s      |36.75          |
 
 P.S. Popular Zstd's benchmark was not included here, because it is not a pure
@@ -180,6 +180,13 @@ yet initialized.
 3. Compared to Clang, other compilers systematically produce 5% slower LZAV
 code. Compiler architecture tuning (other than generic x86-64) may produce
 varying, including counter-productive, results.
+
+4. From a technical point of view, peak decompression speeds of LZAV have an
+implicit limitation arising from its more complex stream format compared to
+LZ4: LZAV decompression requires more code branching. Another limiting factor
+is a rather big 16 MiB LZ77 window which is not CPU cache-friendly. On the
+other hand, without these features it would not be possible to achieve
+competitive compression ratios while having fast compression speeds.
 
 ## Thanks ##
 
