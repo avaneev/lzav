@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 3.10
+ * @version 3.11
  *
  * @brief The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -126,10 +126,17 @@
  * @param x Value to correct in-place.
  */
 
+/**
+ * @def LZAV_IEC64( x )
+ * @brief In-place endianness-correction macro, for singular 64-bit variables.
+ * @param x Value to correct in-place.
+ */
+
 #if LZAV_LITTLE_ENDIAN
 
 	#define LZAV_IEC16( x )
 	#define LZAV_IEC32( x )
+	#define LZAV_IEC64( x )
 
 #else // LZAV_LITTLE_ENDIAN
 
@@ -146,13 +153,20 @@
 	#else // defined( _MSC_VER )
 
 		#define LZAV_IEC16( x ) x = (uint16_t) ( x >> 8 | x << 8 )
-		#define LZAV_IEC32( x ) x = ( \
-			( x & 0xFF000000 ) >> 24 | \
+		#define LZAV_IEC32( x ) x = (uint32_t) ( \
+			x >> 24 | \
 			( x & 0x00FF0000 ) >> 8 | \
 			( x & 0x0000FF00 ) << 8 | \
-			( x & 0x000000FF ) << 24 )
+			x << 24 )
 
 	#endif // defined( _MSC_VER )
+
+	#define LZAV_IEC64( x ) { \
+		const uint64_t sw = x >> 32 | ( x & 0xFFFFFFFF ) << 32; \
+		const uint64_t sw2 = ( sw & 0xFFFF0000FFFF0000 ) >> 16 | \
+			( sw & 0x0000FFFF0000FFFF ) << 16; \
+		x = ( sw2 & 0xFF00FF00FF00FF00 ) >> 8 | \
+			( sw2 & 0x00FF00FF00FF00FF ) << 8; }
 
 #endif // LZAV_LITTLE_ENDIAN
 
@@ -232,6 +246,7 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 				_BitScanForward64( &i, (unsigned __int64) vd );
 				return( p1 - p1s + ( i >> 3 ));
 			#else // defined( _MSC_VER )
+				LZAV_IEC64( vd );
 				const uint64_t m = 0x0101010101010101;
 				return( p1 - p1s +
 					(((( vd ^ ( vd - 1 )) & ( m - 1 )) * m ) >> 56 ));
@@ -278,6 +293,7 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 				_BitScanForward( &i, (unsigned long) vd );
 				return( p1 - p1s + ( i >> 3 ));
 			#else // defined( _MSC_VER )
+				LZAV_IEC32( vd );
 				const uint32_t m = 0x01010101;
 				return( p1 - p1s +
 					(((( vd ^ ( vd - 1 )) & ( m - 1 )) * m ) >> 24 ));
@@ -313,6 +329,67 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 					return( p1 - p1s );
 				}
 			}
+		}
+	}
+
+	return( ml );
+}
+
+/**
+ * @brief Data match length finding function, reverse direction.
+ *
+ * @param p1 Origin pointer to buffer 1.
+ * @param p2 Origin pointer to buffer 2.
+ * @param ml Maximal number of bytes to back-match.
+ * @return The number of matching prior bytes, not including origin position.
+ */
+
+static inline size_t lzav_match_len_r( const uint8_t* p1, const uint8_t* p2,
+	const size_t ml )
+{
+	if( LZAV_UNLIKELY( ml == 0 ))
+	{
+		return( 0 );
+	}
+
+	if( p1[ -1 ] != p2[ -1 ])
+	{
+		return( 0 );
+	}
+
+	if( LZAV_UNLIKELY( ml != 1 ))
+	{
+		const uint8_t* const p1s = p1;
+		const uint8_t* p1e = p1 - ml + 1;
+		p1--;
+		p2--;
+
+		while( LZAV_UNLIKELY( p1 > p1e ))
+		{
+			uint16_t v1, v2;
+			memcpy( &v1, p1 - 2, 2 );
+			memcpy( &v2, p2 - 2, 2 );
+
+			const uint32_t vd = v1 ^ v2;
+
+			if( vd != 0 )
+			{
+			#if LZAV_LITTLE_ENDIAN
+				return( p1s - p1 + (( vd & 0xFF00 ) == 0 ));
+			#else // LZAV_LITTLE_ENDIAN
+				return( p1s - p1 + (( vd & 0x00FF ) == 0 ));
+			#endif // LZAV_LITTLE_ENDIAN
+			}
+
+			p1 -= 2;
+			p2 -= 2;
+		}
+
+		p1e--;
+
+		if( p1 > p1e && p1[ -1 ] != p2[ -1 ])
+		{
+			return( p1s - p1 );
 		}
 	}
 
@@ -704,7 +781,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 	void* alloc_buf = 0; // Hash-table allocated on heap.
 	uint8_t* ht = (uint8_t*) stack_buf; // The actual hash-table pointer.
 
-	int htcap = 1 << 8; // Hash-table's capacity (power-of-2).
+	int htcap = 1 << 7; // Hash-table's capacity (power-of-2).
 
 	while( htcap != ( 1 << 16 ) && htcap * 4 < srcl )
 	{
@@ -856,6 +933,17 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 		// Source data and hash-table entry match.
 
+		// Disallow reference copy overlap by using `d` as max match length.
+
+		ml = ( d > LZAV_REF_LEN ? LZAV_REF_LEN : d );
+
+		if( LZAV_UNLIKELY( ip + ml > ipe ))
+		{
+			// Make sure `LZAV_LIT_FIN` literals remain on finish.
+
+			ml = ipe - ip;
+		}
+
 		if( LZAV_LIKELY( d > LZAV_REF_LEN ))
 		{
 			// Update a matching entry which is not inside max reference
@@ -875,32 +963,34 @@ static inline int lzav_compress( const void* const src, void* const dst,
 			}
 		}
 
-		// Disallow reference copy overlap by using `d` as max match length.
-
-		ml = ( d > LZAV_REF_LEN ? LZAV_REF_LEN : d );
-
-		if( LZAV_UNLIKELY( ip + ml > ipe ))
-		{
-			// Make sure `LZAV_LIT_FIN` literals remain on finish.
-
-			ml = ipe - ip;
-		}
-
 		rc = LZAV_REF_MIN + lzav_match_len( ip + LZAV_REF_MIN,
 			wp + LZAV_REF_MIN, ml - LZAV_REF_MIN );
 
 		lc = ip - ipa;
 
-		if( LZAV_UNLIKELY( lc != 0 ) && lc < 17 )
+		if( LZAV_UNLIKELY( lc != 0 ))
 		{
-			// Try to consume literals by finding a match at back-position.
+			// Try to consume literals by finding a match at a back-position.
 
-			while( lc != 0 && (( rc != ml ) & ( ip[ -1 ] == wp[ -1 ])))
+			ml -= rc;
+
+			if( LZAV_LIKELY( ml > lc ))
 			{
-				rc++;
-				wp--;
-				ip--;
-				lc--;
+				ml = lc;
+			}
+
+			if( LZAV_UNLIKELY( ml > 16 ))
+			{
+				ml = 16;
+			}
+
+			const size_t bmc = lzav_match_len_r( ip, wp, ml );
+
+			if( LZAV_UNLIKELY( bmc != 0 ))
+			{
+				rc += bmc;
+				ip -= bmc;
+				lc -= bmc;
 			}
 		}
 
@@ -1008,7 +1098,7 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 		return( 2 + LZAV_LIT_FIN );
 	}
 
-	int htcap = 1 << 8; // Hash-table's capacity (power-of-2).
+	int htcap = 1 << 7; // Hash-table's capacity (power-of-2).
 
 	while( htcap != ( 1 << 17 ) && htcap * 16 < srcl )
 	{
@@ -1178,30 +1268,27 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 				ml = ipe - ip;
 			}
 
-			size_t bml = wp - (const uint8_t*) src;
+			ml -= rc;
+			const size_t wpo = wp - (const uint8_t*) src;
 
-			if( LZAV_LIKELY( bml > lc ))
+			if( LZAV_LIKELY( ml > lc ))
 			{
-				bml = lc;
+				ml = lc;
 			}
 
-			if( LZAV_UNLIKELY( rc + bml > ml ))
+			if( LZAV_UNLIKELY( ml > wpo ))
 			{
-				bml = ml - rc;
+				ml = wpo;
 			}
 
-			rc += bml;
-			lc -= bml;
+			const size_t bmc = lzav_match_len_r( ip, wp, ml );
 
-			while( bml != 0 && ip[ -1 ] == wp[ -1 ])
+			if( LZAV_UNLIKELY( bmc != 0 ))
 			{
-				ip--;
-				wp--;
-				bml--;
+				rc += bmc;
+				ip -= bmc;
+				lc -= bmc;
 			}
-
-			rc -= bml;
-			lc += bml;
 		}
 
 		if( prc == 0 )
