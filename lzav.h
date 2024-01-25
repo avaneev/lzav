@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 3.11
+ * @version 3.12
  *
  * @brief The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -41,7 +41,7 @@
 #include <stdlib.h>
 
 #define LZAV_API_VER 0x104 ///< API version, unrelated to code's version.
-#define LZAV_VER_STR "3.10" ///< LZAV source code version string.
+#define LZAV_VER_STR "3.12" ///< LZAV source code version string.
 
 // Decompression error codes:
 
@@ -869,37 +869,10 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 		// Find source data in hash-table tuples.
 
-		if( LZAV_UNLIKELY( iw1 == hw1 ))
-		{
-			wp = (const uint8_t*) src + hp[ 1 ];
-			memcpy( &ww2, wp + 4, 2 );
-
-			if( LZAV_UNLIKELY( iw2 != ww2 ))
-			{
-				if( LZAV_LIKELY( iw1 != hp[ 2 ]))
-				{
-					hp[ 2 ] = iw1;
-					hp[ 3 ] = ipo;
-					goto _no_match;
-				}
-
-				wp = (const uint8_t*) src + hp[ 3 ];
-				memcpy( &ww2, wp + 4, 2 );
-
-				if( LZAV_UNLIKELY( iw2 != ww2 ))
-				{
-					hp[ 0 ] = iw1;
-					hp[ 1 ] = ipo;
-					goto _no_match;
-				}
-			}
-		}
-		else
+		if( LZAV_LIKELY( iw1 != hw1 ))
 		{
 			if( LZAV_LIKELY( iw1 != hp[ 2 ]))
 			{
-				hp[ 2 ] = iw1;
-				hp[ 3 ] = ipo;
 				goto _no_match;
 			}
 
@@ -908,9 +881,28 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 			if( LZAV_UNLIKELY( iw2 != ww2 ))
 			{
-				hp[ 0 ] = iw1;
-				hp[ 1 ] = ipo;
 				goto _no_match;
+			}
+		}
+		else
+		{
+			wp = (const uint8_t*) src + hp[ 1 ];
+			memcpy( &ww2, wp + 4, 2 );
+
+			if( LZAV_UNLIKELY( iw2 != ww2 ))
+			{
+				if( LZAV_LIKELY( iw1 != hp[ 2 ]))
+				{
+					goto _no_match;
+				}
+
+				wp = (const uint8_t*) src + hp[ 3 ];
+				memcpy( &ww2, wp + 4, 2 );
+
+				if( LZAV_UNLIKELY( iw2 != ww2 ))
+				{
+					goto _no_match;
+				}
 			}
 		}
 
@@ -1001,6 +993,9 @@ static inline int lzav_compress( const void* const src, void* const dst,
 		continue;
 
 	_no_match:
+		hp[ 2 ] = iw1;
+		hp[ 3 ] = ipo;
+
 		mavg -= mavg >> 11;
 
 		if( mavg < ( 200 << 15 ) && ip != ipa ) // Speed-up threshold.
