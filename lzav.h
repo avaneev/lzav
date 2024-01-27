@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 3.12
+ * @version 3.13
  *
  * @brief The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -41,7 +41,7 @@
 #include <stdlib.h>
 
 #define LZAV_API_VER 0x104 ///< API version, unrelated to code's version.
-#define LZAV_VER_STR "3.12" ///< LZAV source code version string.
+#define LZAV_VER_STR "3.13" ///< LZAV source code version string.
 
 // Decompression error codes:
 
@@ -422,7 +422,7 @@ static inline size_t lzav_match_len_r( const uint8_t* p1, const uint8_t* p2,
  * The overall compressed data is prefixed with a byte whose lower 4 bits
  * contain minimal reference length (mref), and the highest 4 bits contain
  * stream format identifier. Compressed data always finishes with
- * `LZAV_LIT_LEN` literals. The lzav_write_fin_1() function should be used to
+ * `LZAV_LIT_FIN` literals. The lzav_write_fin_1() function should be used to
  * finalize compression.
  *
  * Except the block previous to the last block, a short literal block
@@ -1617,7 +1617,7 @@ _err_dstlen:
  * format.
  *
  * Note that while the function does perform checks to avoid OOB memory
- * accesses, and checks for decompressed data length equality, this is not a
+ * accesses, and a check for decompressed data length equality, this is not a
  * strict guarantee of a valid decompression. In cases when the compressed
  * data is stored in a long-term storage without embedded data integrity
  * mechanisms (e.g., a database without RAID 1 guarantee, a binary container
@@ -1626,7 +1626,7 @@ _err_dstlen:
  * that of the decompressed data. Also, a separate checksum (hash) of
  * application-defined header, which contains uncompressed and compressed data
  * lengths, should be checked before decompression. A high-performance
- * "komihash" hash function can be used to obtain a hash value of the data.
+ * "komihash" hash function can be used to obtain a hash of the data.
  *
  * @param[in] src Source (compressed) data pointer, can be 0 if `srcl` is 0.
  * Address alignment is unimportant.
