@@ -10,7 +10,7 @@ factors, among many similar in-memory (non-streaming) compression algorithms.
 LZAV algorithm's code is portable, cross-platform, scalar, header-only,
 inlineable C (C++ compatible). It supports big- and little-endian platforms,
 and any memory alignment models. The algorithm is efficient on both 32- and
-64-bit platforms. Incompressible data expands by no more than 0.58%.
+64-bit platforms. Incompressible data almost does not expand.
 
 LZAV does not sacrifice internal out-of-bounds (OOB) checks for decompression
 speed. This means that LZAV can be used in strict conditions where OOB memory
@@ -75,16 +75,16 @@ if( comp_len == 0 && src_len != 0 )
 LZAV algorithm and its source code (which is
 [ISO C99](https://en.wikipedia.org/wiki/C99)) were quality-tested with:
 Clang, GCC, MSVC, Intel C++ compilers; on x86, x86-64 (Intel, AMD), AArch64
-(Apple Silicon) architectures; Windows 10, CentOS 8 Linux, macOS 14.3.
+(Apple Silicon) architectures; Windows 10, AlmaLinux 9.3, macOS 14.3.
 
 ## Comparisons ##
 
 The tables below present performance ballpark numbers of LZAV algorithm
 (based on Silesia dataset).
 
-While LZ4 there seems to be compressing faster, LZAV comparably provides 13.7%
+While LZ4 there seems to be compressing faster, LZAV comparably provides 14.2%
 memory storage cost savings. This is a significant benefit in database and
-file system use cases since compression is only about 30% slower while CPUs
+file system use cases since compression is only about 35% slower while CPUs
 rarely run at their maximum capacity anyway, and disk I/O times are reduced
 due to a better compression. In general, LZAV holds a very strong position in
 this class of data compression algorithms, if one considers all factors:
@@ -97,7 +97,7 @@ Depending on the data being compressed, LZAV can achieve 800 MB/s compression
 and 4500 MB/s decompression speeds. Incompressible data decompresses at 10000
 MB/s rate, which is not far from the "memcpy". There are cases like the
 [enwik9 dataset](https://mattmahoney.net/dc/textdata.html) where LZAV
-provides 20.7% higher memory storage savings compared to LZ4. However, on
+provides 21.2% higher memory storage savings compared to LZ4. However, on
 small data (below 50 KB), compression ratio difference between LZAV and LZ4
 diminishes, and LZ4 may have some advantage.
 
@@ -121,12 +121,25 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.13**   |573 MB/s       |3030 MB/s      |41.05          |
+|**LZAV 4.0**    |577 MB/s       |3080 MB/s      |40.81          |
 |LZ4 1.9.4       |700 MB/s       |4570 MB/s      |47.60          |
 |Snappy 1.1.10   |495 MB/s       |3230 MB/s      |48.22          |
 |LZF 3.6         |395 MB/s       |800 MB/s       |48.15          |
-|**LZAV 3.13 HI**|119 MB/s       |3000 MB/s      |35.84          |
+|**LZAV 4.0 HI** |120 MB/s       |3000 MB/s      |35.67          |
 |LZ4HC 1.9.4 -9  |40 MB/s        |4360 MB/s      |36.75          |
+
+### LLVM clang 16.0.6 x86-64, AlmaLinux 9.3, Xeon E-2386G (RocketLake), 5.1 GHz ###
+
+Silesia compression corpus
+
+|Compressor      |Compression    |Decompression  |Ratio          |
+|----            |----           |----           |----           |
+|**LZAV 4.0**    |565 MB/s       |2900 MB/s      |40.81          |
+|LZ4 1.9.4       |845 MB/s       |4960 MB/s      |47.60          |
+|Snappy 1.1.10   |690 MB/s       |3360 MB/s      |48.22          |
+|LZF 3.6         |455 MB/s       |1020 MB/s      |48.15          |
+|**LZAV 4.0 HI** |101 MB/s       |2820 MB/s      |35.67          |
+|LZ4HC 1.9.4 -9  |43 MB/s        |4890 MB/s      |36.75          |
 
 ### LLVM clang-cl 16.0.4 x86-64, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz ###
 
@@ -134,25 +147,12 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio          |
 |----            |----           |----           |----           |
-|**LZAV 3.13**   |500 MB/s       |2750 MB/s      |41.05          |
+|**LZAV 4.0**    |500 MB/s       |2780 MB/s      |40.81          |
 |LZ4 1.9.4       |680 MB/s       |4300 MB/s      |47.60          |
 |Snappy 1.1.10   |425 MB/s       |2430 MB/s      |48.22          |
 |LZF 3.6         |320 MB/s       |700 MB/s       |48.15          |
-|**LZAV 3.13 HI**|103 MB/s       |2690 MB/s      |35.84          |
+|**LZAV 4.0 HI** |102 MB/s       |2760 MB/s      |35.67          |
 |LZ4HC 1.9.4 -9  |36 MB/s        |4100 MB/s      |36.75          |
-
-### LLVM clang 12.0.1 x86-64, CentOS 8, Xeon E-2176G (CoffeeLake), 4.5 GHz ###
-
-Silesia compression corpus
-
-|Compressor      |Compression    |Decompression  |Ratio          |
-|----            |----           |----           |----           |
-|**LZAV 3.13**   |475 MB/s       |2270 MB/s      |41.05          |
-|LZ4 1.9.4       |660 MB/s       |4200 MB/s      |47.60          |
-|Snappy 1.1.10   |545 MB/s       |2150 MB/s      |48.22          |
-|LZF 3.6         |370 MB/s       |880 MB/s       |48.15          |
-|**LZAV 3.13 HI**|89 MB/s        |2270 MB/s      |35.84          |
-|LZ4HC 1.9.4 -9  |32 MB/s        |4150 MB/s      |36.75          |
 
 P.S. Popular Zstd's benchmark was not included here, because it is not a pure
 LZ77, much harder to integrate, and has a much larger code size - a different
@@ -184,7 +184,7 @@ varying, including counter-productive, results.
 4. From a technical point of view, peak decompression speeds of LZAV have an
 implicit limitation arising from its more complex stream format compared to
 LZ4: LZAV decompression requires more code branching. Another limiting factor
-is a rather big 16 MiB LZ77 window which is not CPU cache-friendly. On the
+is a rather big 8 MiB LZ77 window which is not CPU cache-friendly. On the
 other hand, without these features it would not be possible to achieve
 competitive compression ratios while having fast compression speeds.
 
