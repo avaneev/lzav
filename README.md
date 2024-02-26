@@ -119,7 +119,7 @@ visit [lzbench](https://github.com/inikep/lzbench).
 
 Silesia compression corpus
 
-|Compressor      |Compression    |Decompression  |Ratio          |
+|Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
 |**LZAV 4.0**    |577 MB/s       |3080 MB/s      |40.81          |
 |LZ4 1.9.4       |700 MB/s       |4570 MB/s      |47.60          |
@@ -132,7 +132,7 @@ Silesia compression corpus
 
 Silesia compression corpus
 
-|Compressor      |Compression    |Decompression  |Ratio          |
+|Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
 |**LZAV 4.0**    |565 MB/s       |2900 MB/s      |40.81          |
 |LZ4 1.9.4       |845 MB/s       |4960 MB/s      |47.60          |
@@ -145,7 +145,7 @@ Silesia compression corpus
 
 Silesia compression corpus
 
-|Compressor      |Compression    |Decompression  |Ratio          |
+|Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
 |**LZAV 4.0**    |500 MB/s       |2780 MB/s      |40.81          |
 |LZ4 1.9.4       |680 MB/s       |4300 MB/s      |47.60          |
@@ -160,7 +160,7 @@ league, close to zlib. Here are author's Zstd measurements with
 [TurboBench](https://github.com/powturbo/TurboBench/releases), on Ryzen 3700X,
 on Silesia dataset:
 
-|Compressor      |Compression    |Decompression  |Ratio          |
+|Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
 |zstd 1.5.5 -1   |460 MB/s       |1870 MB/s      |41.0           |
 |zstd 1.5.5 1    |436 MB/s       |1400 MB/s      |34.6           |
