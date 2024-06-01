@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 4.0
+ * @version 4.1
  *
  * @brief The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -41,7 +41,7 @@
 #include <stdlib.h>
 
 #define LZAV_API_VER 0x105 ///< API version, unrelated to code's version.
-#define LZAV_VER_STR "4.0" ///< LZAV source code version string.
+#define LZAV_VER_STR "4.1" ///< LZAV source code version string.
 
 #if !defined( LZAV_FMT_MIN )
 	#define LZAV_FMT_MIN 1 ///< Minimal stream format id supported by the
@@ -650,7 +650,7 @@ static inline uint8_t* lzav_write_blk_2( uint8_t* op, size_t lc, size_t rc,
 
 	if( LZAV_LIKELY( d < ( 1 << 18 )))
 	{
-		uint32_t ov = (uint32_t) ( 255 << 24 | d << 6 | 2 << 4 );
+		uint32_t ov = (uint32_t) ( (uint32_t) 255 << 24 | d << 6 | 2 << 4 );
 
 		LZAV_IEC32( ov );
 		memcpy( op, &ov, 4 );
@@ -661,7 +661,7 @@ static inline uint8_t* lzav_write_blk_2( uint8_t* op, size_t lc, size_t rc,
 	*cbpp = op + 3;
 	*op = (uint8_t) ( d << 6 | 3 << 4 );
 
-	uint32_t ov = (uint32_t) ( 255 << 24 | d >> 2 );
+	uint32_t ov = (uint32_t) ( (uint32_t) 255 << 24 | d >> 2 );
 
 	LZAV_IEC32( ov );
 	memcpy( op + 1, &ov, 4 );
