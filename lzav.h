@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 4.1
+ * @version 4.2
  *
  * @brief The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -41,7 +41,7 @@
 #include <stdlib.h>
 
 #define LZAV_API_VER 0x105 ///< API version, unrelated to code's version.
-#define LZAV_VER_STR "4.1" ///< LZAV source code version string.
+#define LZAV_VER_STR "4.2" ///< LZAV source code version string.
 
 #if !defined( LZAV_FMT_MIN )
 	#define LZAV_FMT_MIN 1 ///< Minimal stream format id supported by the
@@ -1598,36 +1598,22 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 		}
 
 	_refblk:
+		const size_t bt = ( bh >> 4 ) & 3;
+		ip++;
+		const int bt8 = (int) ( bt << 3 );
+
+		LZAV_LOAD32( ip );
+		ip += bt;
+		const size_t o = bv & ( 0xFFFFFFFF >> ( 32 - bt8 ));
+
+		LZAV_SET_IPD_CV( bh >> 6 | ( o & 0x1FFFFF ) << 2, o >> 21,
+			( 3 + ( bt != 3 )) & 3 );
+
 		cc = bh & 15;
-
-		if( LZAV_UNLIKELY(( bh & 32 ) == 0 )) // True, if block type 1.
-		{
-			LZAV_SET_IPD( bh >> 6 | (size_t) ip[ 1 ] << 2 );
-			ip += 2;
-			bh = *ip;
-		}
-		else // Block type 2 or 3.
-		{
-			if( LZAV_LIKELY(( bh & 16 ) == 0 )) // True, if block type 2.
-			{
-				LZAV_LOAD16( ip + 1 );
-				LZAV_SET_IPD( bh >> 6 | (size_t) bv << 2 );
-				ip += 3;
-				bh = *ip;
-			}
-			else // Block type 3.
-			{
-				LZAV_LOAD32( ip + 1 );
-				LZAV_SET_IPD_CV( bh >> 6 | ( bv & 0x1FFFFF ) << 2,
-					( bv >> 21 ) & 7, 3 );
-
-				ip += 4;
-				bh = bv >> 24;
-			}
-		}
 
 		if( LZAV_LIKELY( cc != 0 )) // True, if no additional length byte.
 		{
+			bh = ( bv >> bt8 ) & 0xFF;
 			cc += mref1;
 
 			if( LZAV_LIKELY( op < opet ))
@@ -1641,6 +1627,8 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 		}
 		else
 		{
+			bh = ( bv >> bt8 ) & 0xFF;
+
 			if( LZAV_UNLIKELY( bh == 255 ))
 			{
 				cc = 16 + mref1 + 255 + ip[ 1 ];
