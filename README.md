@@ -123,11 +123,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.2**    |577 MB/s       |3740 MB/s      |40.81          |
+|**LZAV 4.3**    |577 MB/s       |3740 MB/s      |40.81          |
 |LZ4 1.9.4       |700 MB/s       |4570 MB/s      |47.60          |
 |Snappy 1.1.10   |495 MB/s       |3230 MB/s      |48.22          |
 |LZF 3.6         |395 MB/s       |800 MB/s       |48.15          |
-|**LZAV 4.2 HI** |120 MB/s       |3630 MB/s      |35.67          |
+|**LZAV 4.3 HI** |120 MB/s       |3630 MB/s      |35.67          |
 |LZ4HC 1.9.4 -9  |40 MB/s        |4360 MB/s      |36.75          |
 
 ### LLVM clang 16.0.6 x86-64, AlmaLinux 9.3, Xeon E-2386G (RocketLake), 5.1 GHz ###
@@ -136,11 +136,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.2**    |565 MB/s       |3300 MB/s      |40.81          |
+|**LZAV 4.3**    |565 MB/s       |3300 MB/s      |40.81          |
 |LZ4 1.9.4       |845 MB/s       |4960 MB/s      |47.60          |
 |Snappy 1.1.10   |690 MB/s       |3360 MB/s      |48.22          |
 |LZF 3.6         |455 MB/s       |1020 MB/s      |48.15          |
-|**LZAV 4.2 HI** |101 MB/s       |3200 MB/s      |35.67          |
+|**LZAV 4.3 HI** |101 MB/s       |3200 MB/s      |35.67          |
 |LZ4HC 1.9.4 -9  |43 MB/s        |4890 MB/s      |36.75          |
 
 ### LLVM clang-cl 16.0.4 x86-64, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz ###
@@ -149,11 +149,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.2**    |500 MB/s       |2960 MB/s      |40.81          |
+|**LZAV 4.3**    |500 MB/s       |2960 MB/s      |40.81          |
 |LZ4 1.9.4       |680 MB/s       |4300 MB/s      |47.60          |
 |Snappy 1.1.10   |425 MB/s       |2430 MB/s      |48.22          |
 |LZF 3.6         |320 MB/s       |700 MB/s       |48.15          |
-|**LZAV 4.2 HI** |102 MB/s       |2940 MB/s      |35.67          |
+|**LZAV 4.3 HI** |102 MB/s       |2940 MB/s      |35.67          |
 |LZ4HC 1.9.4 -9  |36 MB/s        |4100 MB/s      |36.75          |
 
 P.S. Popular Zstd's benchmark was not included here, because it is not a pure
@@ -191,7 +191,7 @@ other hand, without these features it would not be possible to achieve
 competitive compression ratios while having fast compression speeds.
 
 5. LZAV supports compression of continuous data blocks of up to 2 GB. Larger
-data should be compressed in blocks of at least 32 MB. Using smaller blocks
+data should be compressed in chunks of at least 32 MB. Using smaller chunks
 may reduce the achieved compression ratio.
 
 ## Thanks ##

@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 4.2
+ * @version 4.3
  *
  * @brief The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -41,7 +41,7 @@
 #include <stdlib.h>
 
 #define LZAV_API_VER 0x105 ///< API version, unrelated to code's version.
-#define LZAV_VER_STR "4.2" ///< LZAV source code version string.
+#define LZAV_VER_STR "4.3" ///< LZAV source code version string.
 
 #if !defined( LZAV_FMT_MIN )
 	#define LZAV_FMT_MIN 1 ///< Minimal stream format id supported by the
@@ -1474,6 +1474,7 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 	{
 		const uint8_t* ipd; // Source data pointer.
 		size_t cc; // Byte copy count.
+		size_t bt; // Block type.
 
 		if( LZAV_UNLIKELY(( bh & 0x30 ) == 0 )) // Block type 0.
 		{
@@ -1598,7 +1599,7 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 		}
 
 	_refblk:
-		const size_t bt = ( bh >> 4 ) & 3;
+		bt = ( bh >> 4 ) & 3;
 		ip++;
 		const int bt8 = (int) ( bt << 3 );
 
