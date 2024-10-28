@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 4.3
+ * @version 4.4
  *
  * @brief The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -41,7 +41,7 @@
 #include <stdlib.h>
 
 #define LZAV_API_VER 0x105 ///< API version, unrelated to code's version.
-#define LZAV_VER_STR "4.3" ///< LZAV source code version string.
+#define LZAV_VER_STR "4.4" ///< LZAV source code version string.
 
 #if !defined( LZAV_FMT_MIN )
 	#define LZAV_FMT_MIN 1 ///< Minimal stream format id supported by the
@@ -1604,17 +1604,21 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 		const int bt8 = (int) ( bt << 3 );
 
 		LZAV_LOAD32( ip );
+		const uint32_t om = (uint32_t) (( 1 << bt8 ) - 1 );
 		ip += bt;
-		const size_t o = bv & ( 0xFFFFFFFF >> ( 32 - bt8 ));
+		const size_t o = bv & om;
+		bv >>= bt8;
 
-		LZAV_SET_IPD_CV( bh >> 6 | ( o & 0x1FFFFF ) << 2, o >> 21,
-			( 3 + ( bt != 3 )) & 3 );
+		static const int os[ 4 ] = { 0, 0, 0, 3 };
+		const int csh0 = os[ bt ];
+
+		LZAV_SET_IPD_CV( bh >> 6 | ( o & 0x1FFFFF ) << 2, o >> 21, csh0 );
 
 		cc = bh & 15;
 
 		if( LZAV_LIKELY( cc != 0 )) // True, if no additional length byte.
 		{
-			bh = ( bv >> bt8 ) & 0xFF;
+			bh = bv & 0xFF;
 			cc += mref1;
 
 			if( LZAV_LIKELY( op < opet ))
@@ -1628,7 +1632,7 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 		}
 		else
 		{
-			bh = ( bv >> bt8 ) & 0xFF;
+			bh = bv & 0xFF;
 
 			if( LZAV_UNLIKELY( bh == 255 ))
 			{
