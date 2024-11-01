@@ -15,11 +15,11 @@ and any memory alignment models. The algorithm is efficient on both 32- and
 LZAV does not sacrifice internal out-of-bounds (OOB) checks for decompression
 speed. This means that LZAV can be used in strict conditions where OOB memory
 writes (and especially reads) that lead to a trap, are unacceptable (e.g.,
-real-time, system, server software). LZAV can be safely used to decompress
-malformed or damaged compressed data. Which means that LZAV does not require
-calculation of a checksum (or hash) of the compressed data. Only a checksum
-of the uncompressed data may be required, depending on application's
-guarantees.
+real-time, system, server software). LZAV can be used safely (causing no
+crashing nor UB) even when decompressing malformed or damaged compressed data.
+Which means that LZAV does not require calculation of a checksum (or hash) of
+the compressed data. Only a checksum of the uncompressed data may be required,
+depending on application's guarantees.
 
 The internal functions available in the `lzav.h` file allow you to easily
 implement, and experiment with, your own compression algorithms. LZAV stream
@@ -107,12 +107,13 @@ MB/s compression and 3800 +/- 1300 MB/s decompression speeds, on 4+ GHz 64-bit
 processors released since 2019. Note that the algorithm exhibits adaptive
 qualities, and its actual performance depends on the data being compressed.
 LZAV may show an exceptional performance on your specific data, including, but
-not limited to sparse databases, log files, HTML/XML files.
+not limited to: sparse databases, log files, HTML/XML files.
 
 It is also worth noting that compression methods like LZAV and LZ4 usually
 have an advantage over dictionary- and entropy-based coding in that
-hash-table-based compression has a very small overhead while the classic LZ77
-decompression has none at all - this is especially relevant for smaller data.
+hash-table-based compression has a small operation and memory overhead while
+the classic LZ77 decompression has no overhead at all - this is especially
+relevant for smaller data.
 
 For a more comprehensive in-memory compression algorithms benchmark you may
 visit [lzbench](https://github.com/inikep/lzbench).
@@ -123,11 +124,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.4**    |577 MB/s       |3780 MB/s      |40.81          |
+|**LZAV 4.5**    |580 MB/s       |3800 MB/s      |40.81          |
 |LZ4 1.9.4       |700 MB/s       |4570 MB/s      |47.60          |
 |Snappy 1.1.10   |495 MB/s       |3230 MB/s      |48.22          |
 |LZF 3.6         |395 MB/s       |800 MB/s       |48.15          |
-|**LZAV 4.4 HI** |120 MB/s       |3670 MB/s      |35.67          |
+|**LZAV 4.5 HI** |122 MB/s       |3670 MB/s      |35.67          |
 |LZ4HC 1.9.4 -9  |40 MB/s        |4360 MB/s      |36.75          |
 
 ### LLVM clang 16.0.6 x86-64, AlmaLinux 9.3, Xeon E-2386G (RocketLake), 5.1 GHz ###
@@ -136,11 +137,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.4**    |560 MB/s       |3380 MB/s      |40.81          |
+|**LZAV 4.5**    |565 MB/s       |3400 MB/s      |40.81          |
 |LZ4 1.9.4       |845 MB/s       |4960 MB/s      |47.60          |
 |Snappy 1.1.10   |690 MB/s       |3360 MB/s      |48.22          |
 |LZF 3.6         |455 MB/s       |1020 MB/s      |48.15          |
-|**LZAV 4.4 HI** |101 MB/s       |3320 MB/s      |35.67          |
+|**LZAV 4.5 HI** |105 MB/s       |3270 MB/s      |35.67          |
 |LZ4HC 1.9.4 -9  |43 MB/s        |4890 MB/s      |36.75          |
 
 ### LLVM clang-cl 16.0.4 x86-64, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz ###
@@ -149,11 +150,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.4**    |500 MB/s       |3100 MB/s      |40.81          |
+|**LZAV 4.5**    |505 MB/s       |3100 MB/s      |40.81          |
 |LZ4 1.9.4       |680 MB/s       |4300 MB/s      |47.60          |
 |Snappy 1.1.10   |425 MB/s       |2430 MB/s      |48.22          |
 |LZF 3.6         |320 MB/s       |700 MB/s       |48.15          |
-|**LZAV 4.4 HI** |102 MB/s       |3090 MB/s      |35.67          |
+|**LZAV 4.5 HI** |106 MB/s       |3020 MB/s      |35.67          |
 |LZ4HC 1.9.4 -9  |36 MB/s        |4100 MB/s      |36.75          |
 
 P.S. Popular Zstd's benchmark was not included here, because it is not a pure
@@ -184,7 +185,7 @@ code. Compiler architecture tuning (other than generic x86-64) may produce
 varying, including counter-productive, results.
 
 4. From a technical point of view, peak decompression speeds of LZAV have an
-implicit limitation arising from its more complex stream format compared to
+implicit limitation arising from its more complex stream format, compared to
 LZ4: LZAV decompression requires more code branching. Another limiting factor
 is a rather big 8 MiB LZ77 window which is not CPU cache-friendly. On the
 other hand, without these features it would not be possible to achieve
