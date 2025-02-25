@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 4.5
+ * @version 4.6
  *
  * @brief The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -12,7 +12,7 @@
  *
  * LICENSE:
  *
- * Copyright (c) 2023-2024 Aleksey Vaneev
+ * Copyright (c) 2023-2025 Aleksey Vaneev
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -41,7 +41,7 @@
 #include <stdlib.h>
 
 #define LZAV_API_VER 0x106 ///< API version, unrelated to code's version.
-#define LZAV_VER_STR "4.5" ///< LZAV source code version string.
+#define LZAV_VER_STR "4.6" ///< LZAV source code version string.
 
 #if !defined( LZAV_FMT_MIN )
 	#define LZAV_FMT_MIN 1 ///< Minimal stream format id supported by the
@@ -1168,7 +1168,7 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 					const size_t rc0 = 4 + lzav_match_len( ip + 4, wp0 + 4,
 						( d > mlen ? mlen : d ) - 4 );
 
-					if( rc0 > rc + ( d > ( 1 << 18 )))
+					if( rc0 > rc )
 					{
 						wp = wp0;
 						rc = rc0;
@@ -1202,7 +1202,7 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 					const size_t rc0 = 4 + lzav_match_len( ip + 4, wp0 + 4,
 						ml - 4 );
 
-					if( rc0 > rc + ( d > ( 1 << 18 )))
+					if( rc0 > rc )
 					{
 						wp = wp0;
 						rc = rc0;
@@ -1286,7 +1286,7 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 		// found match.
 
 		const int lb = ( lc != 0 );
-		const int sh0 = 10 + ( csh != 0 ) * 3;
+		const int sh0 = 10 + csh;
 		const int sh = sh0 + lb * 2;
 		const size_t ov = lc + lb + ( lc > 15 ) + 2 +
 			( d >= ( (size_t) 1 << sh )) +
