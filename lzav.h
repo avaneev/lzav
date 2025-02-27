@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 4.6
+ * @version 4.7
  *
  * @brief The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -41,7 +41,7 @@
 #include <stdlib.h>
 
 #define LZAV_API_VER 0x106 ///< API version, unrelated to code's version.
-#define LZAV_VER_STR "4.6" ///< LZAV source code version string.
+#define LZAV_VER_STR "4.7" ///< LZAV source code version string.
 
 #if !defined( LZAV_FMT_MIN )
 	#define LZAV_FMT_MIN 1 ///< Minimal stream format id supported by the
@@ -57,6 +57,7 @@
 #define LZAV_E_REFOOB -4 ///< Back-reference OOB.
 #define LZAV_E_DSTLEN -5 ///< Decompressed length mismatch.
 #define LZAV_E_UNKFMT -6 ///< Unknown stream format.
+#define LZAV_E_PTROVR -7 ///< Pointer overflow.
 
 // NOTE: all macros defined below are for internal use, do not change.
 
@@ -883,7 +884,10 @@ static inline int lzav_compress( const void* const src, void* const dst,
 			}
 		}
 
+		// Source data and hash-table entry matched.
+
 		d = ip - wp; // Reference offset (distance).
+		ml = ipe - ip; // Max reference match length.
 
 		if( LZAV_UNLIKELY(( d < 8 ) | ( d > LZAV_WIN_LEN - 1 )))
 		{
@@ -892,24 +896,19 @@ static inline int lzav_compress( const void* const src, void* const dst,
 			goto _d_oob;
 		}
 
-		// Source data and hash-table entry match.
+		// Make sure `LZAV_LIT_FIN` literals remain on finish.
+
+		ml = ( ml > LZAV_REF_LEN ? LZAV_REF_LEN : ml );
 
 		// Disallow reference copy overlap by using `d` as max match length.
 
-		ml = ( d > LZAV_REF_LEN ? LZAV_REF_LEN : d );
-
-		if( LZAV_UNLIKELY( ip + ml > ipe ))
-		{
-			// Make sure `LZAV_LIT_FIN` literals remain on finish.
-
-			ml = ipe - ip;
-		}
+		ml = ( ml > d ? d : ml );
 
 		if( LZAV_LIKELY( d > 273 ))
 		{
-			// Update a matching entry which is not inside max reference
-			// length's range. Otherwise, source data consisting of same-byte
-			// runs won't compress well.
+			// Update a matching entry only if it is not inside a close
+			// reference offset range. Otherwise, source data consisting of
+			// same-byte runs won't compress well.
 
 			if( LZAV_LIKELY( iw1 == hw1 )) // Replace tuple, or insert.
 			{
@@ -953,8 +952,8 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 		op = lzav_write_blk_2( op, lc, rc, d, ipa, &cbp, &csh, LZAV_REF_MIN );
 		ip += rc;
-		ipa = ip;
 		mavg += ( (intptr_t) ( rc << 21 ) - mavg ) >> 10;
+		ipa = ip;
 		continue;
 
 	_d_oob:
@@ -970,9 +969,10 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 	_no_match:
 		hp[ 2 ] = iw1;
-		hp[ 3 ] = ipo;
 
 		mavg -= mavg >> 11;
+
+		hp[ 3 ] = ipo;
 
 		if( mavg < ( 200 << 14 ) && ip != ipa ) // Speed-up threshold.
 		{
@@ -1372,7 +1372,7 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 	uint8_t* const opet = ope - 63; // Threshold for fast copy to destination.
 	*pwl = dstl;
 	const size_t mref1 = ( *ip & 15 ) - 1; // Minimal reference length - 1.
-	size_t bh = 0; // Current block header, updated in each branch.
+	size_t bh; // Current block header, updated in each branch.
 	size_t cv = 0; // Reference offset carry value.
 	int csh = 0; // Reference offset carry shift.
 
@@ -1417,7 +1417,7 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 
 		if( LZAV_UNLIKELY(( bh & 0x30 ) == 0 )) // Block type 0.
 		{
-			size_t ncv = bh >> 6;
+			size_t ncv = bh >> 6; // Additional offset carry bits.
 			ip++;
 			cc = bh & 15;
 
@@ -1463,6 +1463,11 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 				ipd = ip;
 				ip += cc;
 
+				if( LZAV_UNLIKELY( ip < ipd ))
+				{
+					goto _err_ptrovr;
+				}
+
 				if( LZAV_LIKELY(( op < opet ) & ( ipd < ipe - 63 - 16 )))
 				{
 					memcpy( op, ipd, 16 );
@@ -1485,27 +1490,47 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 				}
 			}
 
-			cv |= ncv;
-			csh += 2;
-
-			if( LZAV_LIKELY( ip < ipe ))
+			if( LZAV_UNLIKELY( op + cc < op ))
 			{
-				bh = *ip;
-			}
-			else
-			if( LZAV_UNLIKELY( ip != ipe ))
-			{
-				goto _err_srcoob_lit;
+				goto _err_ptrovr;
 			}
 
 			if( LZAV_UNLIKELY( op + cc > ope ))
 			{
+				if( LZAV_UNLIKELY( ip > ipe ))
+				{
+					goto _err_srcoob_lit;
+				}
+
 				goto _err_dstoob_lit;
 			}
 
-			// This and other alike copy-blocks are transformed into fast SIMD
-			// instructions, by a modern compiler. Direct use of `memcpy` is
-			// slower due to shortness of data remaining to copy, on average.
+			if( LZAV_LIKELY( ip < ipe ))
+			{
+				cv |= ncv;
+				csh += 2;
+				bh = *ip;
+
+				// This and other alike copy-blocks are transformed into fast
+				// SIMD instructions, by a modern compiler. Direct use of
+				// `memcpy` is slower due to shortness of data remaining to
+				// copy, on average.
+
+				while( cc != 0 )
+				{
+					*op = *ipd;
+					ipd++;
+					op++;
+					cc--;
+				}
+
+				continue;
+			}
+
+			if( LZAV_UNLIKELY( ip != ipe ))
+			{
+				goto _err_srcoob_lit;
+			}
 
 			while( cc != 0 )
 			{
@@ -1515,7 +1540,7 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 				cc--;
 			}
 
-			continue;
+			break;
 
 		_err_srcoob_lit:
 			cc = ipe - ipd;
@@ -1572,19 +1597,20 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 		else
 		{
 			bh = bv & 0xFF;
+			cc = 16 + mref1;
 
 			if( LZAV_UNLIKELY( bh == 255 ))
 			{
-				cc = 16 + mref1 + 255 + ip[ 1 ];
-				bh = ip[ 2 ];
+				cc += 255 + ip[ 1 ];
 				ip += 2;
 			}
 			else
 			{
-				cc = 16 + mref1 + bh;
+				cc += bh;
 				ip++;
-				bh = *ip;
 			}
+
+			bh = *ip;
 
 			if( LZAV_LIKELY( op < opet ))
 			{
@@ -1643,6 +1669,10 @@ _err_refoob:
 _err_dstlen:
 	*pwl = (int) ( op - (uint8_t*) dst );
 	return( LZAV_E_DSTLEN );
+
+_err_ptrovr:
+	*pwl = (int) ( op - (uint8_t*) dst );
+	return( LZAV_E_PTROVR );
 }
 
 #if LZAV_FMT_MIN < 2
