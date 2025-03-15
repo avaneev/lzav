@@ -124,11 +124,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.7**    |585 MB/s       |3810 MB/s      |40.81          |
+|**LZAV 4.8**    |586 MB/s       |3820 MB/s      |40.81          |
 |LZ4 1.9.4       |700 MB/s       |4570 MB/s      |47.60          |
 |Snappy 1.1.10   |495 MB/s       |3230 MB/s      |48.22          |
 |LZF 3.6         |395 MB/s       |800 MB/s       |48.15          |
-|**LZAV 4.7 HI** |125 MB/s       |3710 MB/s      |35.65          |
+|**LZAV 4.8 HI** |126 MB/s       |3760 MB/s      |35.57          |
 |LZ4HC 1.9.4 -9  |40 MB/s        |4360 MB/s      |36.75          |
 
 ### LLVM clang 16.0.6 x86-64, AlmaLinux 9.3, Xeon E-2386G (RocketLake), 5.1 GHz ###
@@ -137,25 +137,25 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.7**    |570 MB/s       |3490 MB/s      |40.81          |
+|**LZAV 4.8**    |570 MB/s       |3430 MB/s      |40.81          |
 |LZ4 1.9.4       |845 MB/s       |4960 MB/s      |47.60          |
 |Snappy 1.1.10   |690 MB/s       |3360 MB/s      |48.22          |
 |LZF 3.6         |455 MB/s       |1020 MB/s      |48.15          |
-|**LZAV 4.7 HI** |110 MB/s       |3400 MB/s      |35.65          |
+|**LZAV 4.8 HI** |110 MB/s       |3390 MB/s      |35.57          |
 |LZ4HC 1.9.4 -9  |43 MB/s        |4890 MB/s      |36.75          |
 
-### LLVM clang-cl 16.0.4 x86-64, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz ###
+### LLVM clang-cl 18.1.8 x86-64, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz ###
 
 Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.7**    |508 MB/s       |3100 MB/s      |40.81          |
-|LZ4 1.9.4       |680 MB/s       |4300 MB/s      |47.60          |
-|Snappy 1.1.10   |425 MB/s       |2430 MB/s      |48.22          |
-|LZF 3.6         |320 MB/s       |700 MB/s       |48.15          |
-|**LZAV 4.7 HI** |109 MB/s       |3070 MB/s      |35.65          |
-|LZ4HC 1.9.4 -9  |36 MB/s        |4100 MB/s      |36.75          |
+|**LZAV 4.8**    |510 MB/s       |3040 MB/s      |40.81          |
+|LZ4 1.9.4       |675 MB/s       |4560 MB/s      |47.60          |
+|Snappy 1.1.10   |415 MB/s       |2440 MB/s      |48.22          |
+|LZF 3.6         |310 MB/s       |700 MB/s       |48.15          |
+|**LZAV 4.8 HI** |110 MB/s       |3000 MB/s      |35.57          |
+|LZ4HC 1.9.4 -9  |36 MB/s        |4430 MB/s      |36.75          |
 
 P.S. Popular Zstd's benchmark was not included here, because it is not a pure
 LZ77, much harder to integrate, and has a much larger code size - a different
@@ -174,24 +174,14 @@ on Silesia dataset:
 parameter in the decompressor should specify the original uncompressed length,
 which should have been previously stored in some way, independent of LZAV.
 
-2. Run-time memory sanitizers like Valgrind and Dr.Memory may generate the
-"uninitialized read" warning in decompressor's block type 1 handler. This is
-an expected behavior, and not a bug - this happens due to SIMD optimizations
-that read bytes from the output buffer (within its valid range) which were not
-yet initialized.
-
-3. Compared to Clang, other compilers systematically produce 5% slower LZAV
-code. Compiler architecture tuning (other than generic x86-64) may produce
-varying, including counter-productive, results.
-
-4. From a technical point of view, peak decompression speeds of LZAV have an
+2. From a technical point of view, peak decompression speeds of LZAV have an
 implicit limitation arising from its more complex stream format, compared to
 LZ4: LZAV decompression requires more code branching. Another limiting factor
 is a rather big 8 MiB LZ77 window which is not CPU cache-friendly. On the
 other hand, without these features it would not be possible to achieve
 competitive compression ratios while having fast compression speeds.
 
-5. LZAV supports compression of continuous data blocks of up to 2 GB. Larger
+3. LZAV supports compression of continuous data blocks of up to 2 GB. Larger
 data should be compressed in chunks of at least 32 MB. Using smaller chunks
 may reduce the achieved compression ratio.
 
