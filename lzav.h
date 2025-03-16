@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 4.8
+ * @version 4.9
  *
  * @brief The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -41,7 +41,7 @@
 #include <stdlib.h>
 
 #define LZAV_API_VER 0x106 ///< API version, unrelated to code's version.
-#define LZAV_VER_STR "4.8" ///< LZAV source code version string.
+#define LZAV_VER_STR "4.9" ///< LZAV source code version string.
 
 #if !defined( LZAV_FMT_MIN )
 	#define LZAV_FMT_MIN 1 ///< Minimal stream format id supported by the
@@ -68,15 +68,26 @@
 #define LZAV_FMT_CUR 2 ///< Stream format identifier used by the compressor.
 
 /**
+ * @def LZAV_X86
+ * @brief Macro is defined if `x86` or `x86_64` platform was detected.
+ */
+
+#if defined( i386 ) || defined( __i386 ) || defined( __i386__ ) || \
+	defined( __x86_64__ ) || defined( __amd64 ) || defined( __amd64__ ) || \
+	defined( _M_IX86 ) || ( defined( _M_AMD64 ) && !defined( _M_ARM64EC ))
+
+	#define LZAV_X86
+
+#endif // x86 platform check
+
+/**
  * @def LZAV_LITTLE_ENDIAN
  * @brief Endianness definition macro, can be used as a logical constant.
  */
 
 #if defined( __LITTLE_ENDIAN__ ) || defined( __LITTLE_ENDIAN ) || \
-	defined( _LITTLE_ENDIAN ) || defined( _WIN32 ) || defined( i386 ) || \
-	defined( __i386 ) || defined( __i386__ ) || defined( _M_IX86 ) || \
-	defined( _M_X64 ) || defined( _M_AMD64 ) || defined( __x86_64__ ) || \
-	defined( __amd64 ) || defined( __amd64__ ) || \
+	defined( _LITTLE_ENDIAN ) || defined( LZAV_X86 ) || \
+	defined( _WIN32 ) || defined( _M_X64 ) || \
 	( defined( __BYTE_ORDER__ ) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__ )
 
 	#define LZAV_LITTLE_ENDIAN 1
@@ -103,11 +114,11 @@
  */
 
 #if defined( _WIN64 ) || defined( _M_X64 ) || defined( _M_AMD64 ) || \
-	defined( _M_ARM64 ) || defined( _M_IA64 ) || defined( __x86_64__ ) || \
-	defined( __aarch64__ ) || defined( __arm64__ ) || defined( __amd64 ) || \
-	defined( __amd64__ ) || defined( __ia64 ) || defined( __ia64__ ) || \
-	defined( __ppc64__ ) || defined( __PPC64__ ) || \
-	defined( __powerpc64__ ) || defined( __LP64__ ) || defined( _LP64 )
+	defined( _M_IA64 ) || defined( __x86_64__ ) || defined( __aarch64__ ) || \
+	defined( __arm64__ ) || defined( __amd64 ) || defined( __amd64__ ) || \
+	defined( __ia64 ) || defined( __ia64__ ) || defined( __ppc64__ ) || \
+	defined( __PPC64__ ) || defined( __powerpc64__ ) || \
+	defined( __LP64__ ) || defined( _LP64 )
 
 	#define LZAV_ARCH64
 
@@ -1234,10 +1245,10 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 
 		d = ip - wp;
 
-		if(( rc == 0 ) | ( d != rc ))
+		if( LZAV_LIKELY(( rc == 0 ) | ( d != rc )))
 		{
-			// Update a matching entry if there was no match and if it's not
-			// an adjacent replication.
+			// Update hash-table entry, if there was no match, or if the match
+			// is not an adjacent replication.
 
 			ti0 = ( ti0 == 0 ? 12 : ti0 - 2 );
 			hp[ ti0 ] = iw1;
@@ -1305,6 +1316,7 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 		// Block size overhead estimation, and comparison with a previously
 		// found match.
 
+		const size_t plc = pip - ipa;
 		const int lb = ( lc != 0 );
 		const int sh0 = 10 + csh;
 		const int sh = sh0 + lb * 2;
@@ -1312,7 +1324,6 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 			( d >= ( (size_t) 1 << sh )) +
 			( d >= ( (size_t) 1 << ( sh + 8 )));
 
-		const size_t plc = pip - ipa;
 		const int plb = ( plc != 0 );
 		const int psh = sh0 + plb * 2;
 		const size_t pov = plc + plb + ( plc > 15 ) + 2 +
@@ -1321,18 +1332,20 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 
 		if( LZAV_LIKELY( prc * ov > rc * pov ))
 		{
-			if( LZAV_UNLIKELY( pip + prc <= ip ))
+			const uint8_t* const nipa = pip + prc;
+
+			if( LZAV_UNLIKELY( nipa <= ip ))
 			{
 				// A winning previous match does not overlap a current match.
 
 				op = lzav_write_blk_2( op, plc, prc, pd, ipa, &cbp, &csh,
 					mref );
 
-				ipa = pip + prc;
+				ipa = nipa;
 				prc = rc;
 				pd = d;
 				pip = ip;
-				ip++;
+				ip = ip0 + 1;
 				continue;
 			}
 
@@ -1569,16 +1582,34 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 		ip++;
 		const int bt8 = (int) ( bt << 3 );
 
+	#if defined( LZAV_X86 )
+
+		static const uint32_t om[ 4 ] = { 0, 0xFF, 0xFFFF, 0xFFFFFF };
+		static const int ocsh[ 4 ] = { 0, 0, 0, 3 };
+
+		LZAV_LOAD32( ip );
+		ip += bt;
+		const uint32_t o = bv & om[ bt ];
+		bv >>= bt8;
+
+		const int wcsh = ocsh[ bt ];
+
+		LZAV_SET_IPD_CV( bh >> 6 | ( o & 0x1FFFFF ) << 2, o >> 21, wcsh );
+
+	#else // defined( LZAV_X86 )
+
+		// Memory accesses on RISC are less efficient here.
+
 		LZAV_LOAD32( ip );
 		const uint32_t om = (uint32_t) (( 1 << bt8 ) - 1 );
 		ip += bt;
 		const size_t o = bv & om;
 		bv >>= bt8;
 
-		static const int ocsh[ 4 ] = { 0, 0, 0, 3 };
-		const int wcsh = ocsh[ bt ];
+		LZAV_SET_IPD_CV( bh >> 6 | ( o & 0x1FFFFF ) << 2, o >> 21,
+			( bt == 3 ? 3 : 0 ));
 
-		LZAV_SET_IPD_CV( bh >> 6 | ( o & 0x1FFFFF ) << 2, o >> 21, wcsh );
+	#endif // defined( LZAV_X86 )
 
 		cc = bh & 15;
 
