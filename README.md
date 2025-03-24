@@ -1,6 +1,6 @@
-# LZAV - Fast Data Compression Algorithm (in C/C++) #
+# LZAV - Fast Data Compression Algorithm (in C/C++)
 
-## Introduction ##
+## Introduction
 
 LZAV is a fast general-purpose in-memory data compression algorithm based on
 now-classic [LZ77](https://wikipedia.org/wiki/LZ77_and_LZ78) lossless data
@@ -26,7 +26,7 @@ implement, and experiment with, your own compression algorithms. LZAV stream
 format and decompressor have a potential of high decompression speeds and
 compression ratios, which depends on the way data is compressed.
 
-## Usage Information ##
+## Usage
 
 To compress data:
 
@@ -78,7 +78,7 @@ LZAV algorithm and its source code (which is
 Clang, GCC, MSVC, Intel C++ compilers; on x86, x86-64 (Intel, AMD), AArch64
 (Apple Silicon) architectures; Windows 10, AlmaLinux 9.3, macOS 15.3.1.
 
-## Comparisons ##
+## Comparisons
 
 The tables below present performance ballpark numbers of LZAV algorithm
 (based on Silesia dataset).
@@ -118,43 +118,43 @@ relevant for smaller data.
 For a more comprehensive in-memory compression algorithms benchmark you may
 visit [lzbench](https://github.com/inikep/lzbench).
 
-### Apple clang 15.0.0 arm64, macOS 15.3.1, Apple M1, 3.5 GHz ###
+### Apple clang 15.0.0 arm64, macOS 15.3.1, Apple M1, 3.5 GHz
 
 Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.9**    |586 MB/s       |3840 MB/s      |40.81          |
+|**LZAV 4.10**   |586 MB/s       |3840 MB/s      |40.81          |
 |LZ4 1.9.4       |700 MB/s       |4570 MB/s      |47.60          |
 |Snappy 1.1.10   |495 MB/s       |3230 MB/s      |48.22          |
 |LZF 3.6         |395 MB/s       |800 MB/s       |48.15          |
-|**LZAV 4.9 HI** |126 MB/s       |3790 MB/s      |35.57          |
+|**LZAV 4.10 HI**|126 MB/s       |3790 MB/s      |35.57          |
 |LZ4HC 1.9.4 -9  |40 MB/s        |4360 MB/s      |36.75          |
 
-### LLVM clang 16.0.6 x86-64, AlmaLinux 9.3, Xeon E-2386G (RocketLake), 5.1 GHz ###
+### LLVM clang 16.0.6 x86-64, AlmaLinux 9.3, Xeon E-2386G (RocketLake), 5.1 GHz
 
 Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.9**    |570 MB/s       |3580 MB/s      |40.81          |
+|**LZAV 4.10**   |570 MB/s       |3620 MB/s      |40.81          |
 |LZ4 1.9.4       |845 MB/s       |4960 MB/s      |47.60          |
 |Snappy 1.1.10   |690 MB/s       |3360 MB/s      |48.22          |
 |LZF 3.6         |455 MB/s       |1020 MB/s      |48.15          |
-|**LZAV 4.9 HI** |110 MB/s       |3440 MB/s      |35.57          |
+|**LZAV 4.10 HI**|110 MB/s       |3500 MB/s      |35.57          |
 |LZ4HC 1.9.4 -9  |43 MB/s        |4890 MB/s      |36.75          |
 
-### LLVM clang-cl 18.1.8 x86-64, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz ###
+### LLVM clang-cl 18.1.8 x86-64, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz
 
 Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.9**    |510 MB/s       |3080 MB/s      |40.81          |
+|**LZAV 4.10**   |510 MB/s       |3090 MB/s      |40.81          |
 |LZ4 1.9.4       |675 MB/s       |4560 MB/s      |47.60          |
 |Snappy 1.1.10   |415 MB/s       |2440 MB/s      |48.22          |
 |LZF 3.6         |310 MB/s       |700 MB/s       |48.15          |
-|**LZAV 4.9 HI** |110 MB/s       |3050 MB/s      |35.57          |
+|**LZAV 4.10 HI**|110 MB/s       |3060 MB/s      |35.57          |
 |LZ4HC 1.9.4 -9  |36 MB/s        |4430 MB/s      |36.75          |
 
 P.S. Popular Zstd's benchmark was not included here, because it is not a pure
@@ -168,7 +168,7 @@ on Silesia dataset:
 |zstd 1.5.5 -1   |460 MB/s       |1870 MB/s      |41.0           |
 |zstd 1.5.5 1    |436 MB/s       |1400 MB/s      |34.6           |
 
-## Notes ##
+## Notes
 
 1. LZAV API is not equivalent to LZ4 nor Snappy API. For example, the "dstl"
 parameter in the decompressor should specify the original uncompressed length,
@@ -185,7 +185,7 @@ competitive compression ratios while having fast compression speeds.
 data should be compressed in chunks of at least 32 MB. Using smaller chunks
 may reduce the achieved compression ratio.
 
-## Thanks ##
+## Thanks
 
 * [Paul Dreik](https://github.com/pauldreik), for finding memcpy UB in the
 decompressor.
