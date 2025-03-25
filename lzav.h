@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 4.10
+ * @version 4.11
  *
  * @brief The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -37,7 +37,7 @@
 #define LZAV_INCLUDED
 
 #define LZAV_API_VER 0x107 ///< API version, unrelated to code's version.
-#define LZAV_VER_STR "4.10" ///< LZAV source code version string.
+#define LZAV_VER_STR "4.11" ///< LZAV source code version string.
 
 /**
  * @def LZAV_FMT_MIN
@@ -67,6 +67,11 @@
  */
 
 /**
+ * @def LZAV_NP
+ * @brief Macro that defines "nullptr" value, for C++ guidelines conformance.
+ */
+
+/**
  * @def LZAV_NS
  * @brief Macro that defines an implementation namespace in C++ environment,
  * with export of relevant symbols to the unnamed namespace.
@@ -79,6 +84,7 @@
 	#include <cstdlib>
 
 	#define LZAV_NOEX noexcept
+	#define LZAV_NP nullptr
 	#define LZAV_NS lzav
 
 #else // __cplusplus
@@ -88,6 +94,7 @@
 	#include <stdlib.h>
 
 	#define LZAV_NOEX
+	#define LZAV_NP 0
 
 #endif // __cplusplus
 
@@ -184,7 +191,7 @@
 
 #if LZAV_LITTLE_ENDIAN
 
-	#define LZAV_IEC32( x )
+	#define LZAV_IEC32( x ) ( 0 )
 
 #else // LZAV_LITTLE_ENDIAN
 
@@ -793,8 +800,8 @@ static inline int lzav_compress( const void* const src, void* const dst,
 	const int srcl, const int dstl, void* const ext_buf,
 	const int ext_bufl ) LZAV_NOEX
 {
-	if(( srcl <= 0 ) | ( src == 0 ) | ( dst == 0 ) | ( src == dst ) |
-		( dstl < lzav_compress_bound( srcl )))
+	if(( srcl <= 0 ) | ( src == LZAV_NP ) | ( dst == LZAV_NP ) |
+		( src == dst ) | ( dstl < lzav_compress_bound( srcl )))
 	{
 		return( 0 );
 	}
@@ -825,13 +832,13 @@ static inline int lzav_compress( const void* const src, void* const dst,
 	}
 
 	uint32_t stack_buf[ 4096 ]; // On-stack hash-table.
-	void* alloc_buf = 0; // Hash-table allocated on heap.
+	void* alloc_buf = LZAV_NP; // Hash-table allocated on heap.
 	uint8_t* ht = (uint8_t*) stack_buf; // The actual hash-table pointer.
 
 	size_t htsize; // Hash-table's size in bytes (power-of-2).
 	htsize = ( 1 << 7 ) * sizeof( uint32_t ) * 4;
 
-	if( ext_buf == 0 )
+	if( ext_buf == LZAV_NP )
 	{
 		while( htsize != ( 1 << 20 ) && ( htsize >> 2 ) < (size_t) srcl )
 		{
@@ -842,7 +849,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 		{
 			alloc_buf = malloc( htsize );
 
-			if( alloc_buf == 0 )
+			if( alloc_buf == LZAV_NP )
 			{
 				return( 0 );
 			}
@@ -1078,7 +1085,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 		ip++;
 	}
 
-	if( alloc_buf != 0 )
+	if( alloc_buf != LZAV_NP )
 	{
 		free( alloc_buf );
 	}
@@ -1107,7 +1114,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 static inline int lzav_compress_default( const void* const src,
 	void* const dst, const int srcl, const int dstl ) LZAV_NOEX
 {
-	return( lzav_compress( src, dst, srcl, dstl, 0, 0 ));
+	return( lzav_compress( src, dst, srcl, dstl, LZAV_NP, 0 ));
 }
 
 /**
@@ -1129,8 +1136,8 @@ static inline int lzav_compress_default( const void* const src,
 static inline int lzav_compress_hi( const void* const src, void* const dst,
 	const int srcl, const int dstl ) LZAV_NOEX
 {
-	if(( srcl <= 0 ) | ( src == 0 ) | ( dst == 0 ) | ( src == dst ) |
-		( dstl < lzav_compress_bound_hi( srcl )))
+	if(( srcl <= 0 ) | ( src == LZAV_NP ) | ( dst == LZAV_NP ) |
+		( src == dst ) | ( dstl < lzav_compress_bound_hi( srcl )))
 	{
 		return( 0 );
 	}
@@ -1170,7 +1177,7 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 
 	uint8_t* const ht = (uint8_t*) malloc( htsize ); // The hash-table pointer.
 
-	if( ht == 0 )
+	if( ht == LZAV_NP )
 	{
 		return( 0 );
 	}
@@ -1484,7 +1491,7 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 	#define LZAV_LOAD32( a ) \
 		uint32_t bv; \
 		memcpy( &bv, a, 4 ); \
-		LZAV_IEC32( bv );
+		LZAV_IEC32( bv )
 
 	#define LZAV_SET_IPD_CV( x, v, sh ) \
 		const size_t d = ( x ) << csh | cv; \
@@ -1492,7 +1499,7 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 		if( LZAV_UNLIKELY( (uint8_t*) dst + d > op )) \
 			goto _err_refoob; \
 		csh = ( sh ); \
-		cv = ( v );
+		cv = ( v )
 
 	#define LZAV_SET_IPD( x ) \
 		LZAV_SET_IPD_CV( x, 0, 0 )
@@ -1866,14 +1873,14 @@ static inline int lzav_decompress_1( const void* const src, void* const dst,
 	#if LZAV_LITTLE_ENDIAN
 		#define LZAV_LOAD16( a ) \
 			uint16_t bv; \
-			memcpy( &bv, a, 2 );
+			memcpy( &bv, a, 2 )
 	#else // LZAV_LITTLE_ENDIAN
 		#define LZAV_LOAD16( a ) \
-			uint16_t bv = (uint16_t) ( *( a ) | *( a + 1 ) << 8 );
+			uint16_t bv = (uint16_t) ( *( a ) | *( a + 1 ) << 8 )
 	#endif // LZAV_LITTLE_ENDIAN
 
 	#define LZAV_MEMMOVE( d, s, c ) \
-		{ uint8_t tmp[ c ]; memcpy( tmp, s, c ); memcpy( d, tmp, c ); }
+		{ uint8_t tmp[ c ]; memcpy( tmp, s, c ); memcpy( d, tmp, c ); } ( 0 )
 
 	ip++; // Advance beyond prefix byte.
 
@@ -2101,7 +2108,8 @@ _err_dstlen:
 static inline int lzav_decompress_partial( const void* const src,
 	void* const dst, const int srcl, const int dstl ) LZAV_NOEX
 {
-	if( srcl <= 0 || src == 0 || dst == 0 || src == dst || dstl <= 0 )
+	if( srcl <= 0 || src == LZAV_NP || dst == LZAV_NP || src == dst ||
+		dstl <= 0 )
 	{
 		return( 0 );
 	}
@@ -2163,7 +2171,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 		return( dstl == 0 ? 0 : LZAV_E_PARAMS );
 	}
 
-	if( src == 0 || dst == 0 || src == dst || dstl <= 0 )
+	if( src == LZAV_NP || dst == LZAV_NP || src == dst || dstl <= 0 )
 	{
 		return( LZAV_E_PARAMS );
 	}
