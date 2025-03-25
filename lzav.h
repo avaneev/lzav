@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 4.11
+ * @version 4.12
  *
  * @brief The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -37,7 +37,7 @@
 #define LZAV_INCLUDED
 
 #define LZAV_API_VER 0x107 ///< API version, unrelated to code's version.
-#define LZAV_VER_STR "4.11" ///< LZAV source code version string.
+#define LZAV_VER_STR "4.12" ///< LZAV source code version string.
 
 /**
  * @def LZAV_FMT_MIN
@@ -159,11 +159,20 @@
 #endif // defined( __BIG_ENDIAN__ )
 
 /**
+ * @def LZAV_PTR32
+ * @brief Macro that denotes that pointers are 32-bit.
+ */
+
+#if SIZE_MAX <= 0xFFFFFFFFU
+	#define LZAV_PTR32
+#endif // SIZE_MAX <= 0xFFFFFFFFU
+
+/**
  * @def LZAV_ARCH64
  * @brief Macro that denotes availability of 64-bit instructions.
  */
 
-#if defined( __LP64__ ) || defined( _LP64 ) || !( SIZE_MAX <= 0xFFFFFFFFU )
+#if defined( __LP64__ ) || defined( _LP64 ) || !defined( LZAV_PTR32 )
 
 	#define LZAV_ARCH64
 
@@ -258,8 +267,11 @@ namespace LZAV_NS
 	using std :: intptr_t;
 	using std :: uint16_t;
 	using std :: uint32_t;
-	using std :: uint64_t;
 	using uint8_t = unsigned char; // For C++ type aliasing compliance.
+
+	#if defined( LZAV_ARCH64 )
+		using std :: uint64_t;
+	#endif // defined( LZAV_ARCH64 )
 
 #endif // defined( LZAV_NS )
 
@@ -309,7 +321,7 @@ static inline size_t lzav_match_len( const uint8_t* p1, const uint8_t* p2,
 				return( p1 - p1s + ( i >> 3 ));
 			#else // defined( _MSC_VER )
 				#if !LZAV_LITTLE_ENDIAN
-					const uint64_t sw = (uint64_t) ( vd >> 32 | vd << 32 );
+					const uint64_t sw = vd >> 32 | vd << 32;
 					const uint64_t sw2 =
 						( sw & (uint64_t) 0xFFFF0000FFFF0000 ) >> 16 |
 						( sw & (uint64_t) 0x0000FFFF0000FFFF ) << 16;
@@ -740,21 +752,29 @@ static inline int lzav_compress_bound_hi( const int srcl ) LZAV_NOEX
  *
  * @param[out] ht Hash-table pointer.
  * @param htsize Hash-table size. The size should be a power of 2 value, not
- * lesser than 8 bytes.
+ * lesser than 64 bytes.
  * @param[in] initv Pointer to initialized 8-byte tuple.
  */
 
 static inline void lzav_ht_init( uint8_t* const ht, const size_t htsize,
 	const uint32_t* const initv ) LZAV_NOEX
 {
-	uint32_t* ht32 = (uint32_t*) ht;
-	uint32_t* const ht32e = (uint32_t*) ( ht + htsize );
+	memcpy( ht, initv, 8 );
+	memcpy( ht + 8, initv, 8 );
+	memcpy( ht + 16, ht, 16 );
+	memcpy( ht + 32, ht, 16 );
+	memcpy( ht + 48, ht, 16 );
 
-	while( ht32 != ht32e )
+	uint8_t* const hte = ht + htsize;
+	uint8_t* htc = ht + 64;
+
+	while( LZAV_LIKELY( htc != hte ))
 	{
-		ht32[ 0 ] = initv[ 0 ];
-		ht32[ 1 ] = initv[ 1 ];
-		ht32 += 2;
+		memcpy( htc, ht, 16 );
+		memcpy( htc + 16, ht, 16 );
+		memcpy( htc + 32, ht, 16 );
+		memcpy( htc + 48, ht, 16 );
+		htc += 64;
 	}
 }
 
@@ -915,17 +935,21 @@ static inline int lzav_compress( const void* const src, void* const dst,
 
 	while( LZAV_LIKELY( ip < ipet ))
 	{
-		// Hash source data (endianness is unimportant for compression
-		// efficiency). Hash is based on the "komihash" math construct, see
-		// https://github.com/avaneev/komihash for details.
+		// Hash source data (endianness is minimally important for compression
+		// efficiency).
 
 		uint32_t iw1;
 		uint16_t iw2, ww2;
 		memcpy( &iw1, ip, 4 );
-		const uint32_t Seed1 = LZAV_HASH_C1 ^ iw1;
+
+		uint32_t Seed1 = LZAV_HASH_C1;
+		uint32_t hval = LZAV_HASH_C2;
 		memcpy( &iw2, ip + 4, 2 );
-		const uint64_t hm = (uint64_t) Seed1 * ( LZAV_HASH_C2 ^ iw2 );
-		const uint32_t hval = (uint32_t) hm ^ (uint32_t) ( hm >> 32 );
+
+		Seed1 ^= iw1;
+		hval ^= iw2;
+		hval *= Seed1;
+		hval >>= 12;
 
 		// Hash-table access.
 
@@ -1207,16 +1231,19 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 
 	while( LZAV_LIKELY( ip < ipet ))
 	{
-		// Hash source data (endianness is unimportant for compression
-		// efficiency). Hash is based on the "komihash" math construct, see
-		// https://github.com/avaneev/komihash for details.
+		// Hash source data (endianness is minimally important for compression
+		// efficiency).
 
 		uint32_t iw1;
 		memcpy( &iw1, ip, 4 );
-		const uint64_t hm = (uint64_t) ( LZAV_HASH_C1 ^ iw1 ) *
-			( LZAV_HASH_C2 ^ ip[ 4 ]);
 
-		const uint32_t hval = (uint32_t) hm ^ (uint32_t) ( hm >> 32 );
+		uint32_t Seed1 = LZAV_HASH_C1;
+		uint32_t hval = LZAV_HASH_C2;
+
+		Seed1 ^= iw1;
+		hval ^= ip[ 4 ];
+		hval *= Seed1;
+		hval >>= 8;
 
 		// Hash-table access.
 
@@ -1567,14 +1594,15 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 				cc += 16;
 				ipd = ip;
 				ip += cc;
+
 				uint8_t* const opcc = op + cc;
 
-				#if !defined( LZAV_ARCH64 )
-				if( LZAV_UNLIKELY( ip < ipd ))
+				#if defined( LZAV_PTR32 )
+				if( LZAV_UNLIKELY(( ip < ipd ) | ( opcc < op )))
 				{
 					goto _err_ptrovr;
 				}
-				#endif // !defined( LZAV_ARCH64 )
+				#endif // defined( LZAV_PTR32 )
 
 				if( LZAV_LIKELY(( opcc < opet ) & ( ip < ipe - 70 ))) // 63+6+1
 				{
@@ -1599,12 +1627,12 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 
 			uint8_t* const opcc = op + cc;
 
-			#if !defined( LZAV_ARCH64 )
+			#if defined( LZAV_PTR32 )
 			if( LZAV_UNLIKELY( opcc < op ))
 			{
 				goto _err_ptrovr;
 			}
-			#endif // !defined( LZAV_ARCH64 )
+			#endif // defined( LZAV_PTR32 )
 
 			if( LZAV_UNLIKELY( opcc > ope ))
 			{
@@ -1812,11 +1840,11 @@ _err_dstlen:
 	*pwl = (int) ( op - (uint8_t*) dst );
 	return( LZAV_E_DSTLEN );
 
-#if !defined( LZAV_ARCH64 )
+#if defined( LZAV_PTR32 )
 _err_ptrovr:
 	*pwl = (int) ( op - (uint8_t*) dst );
 	return( LZAV_E_PTROVR );
-#endif // !defined( LZAV_ARCH64 )
+#endif // defined( LZAV_PTR32 )
 }
 
 #if LZAV_FMT_MIN < 2
