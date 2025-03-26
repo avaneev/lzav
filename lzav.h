@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 4.12
+ * @version 4.13
  *
  * @brief The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -37,7 +37,7 @@
 #define LZAV_INCLUDED
 
 #define LZAV_API_VER 0x107 ///< API version, unrelated to code's version.
-#define LZAV_VER_STR "4.12" ///< LZAV source code version string.
+#define LZAV_VER_STR "4.13" ///< LZAV source code version string.
 
 /**
  * @def LZAV_FMT_MIN
@@ -110,8 +110,8 @@
 #define LZAV_REF_LEN ( 15 + 255 + 254 ) ///< Max ref length, minus `mref`.
 #define LZAV_LIT_FIN 6 ///< The number of literals required at finish.
 #define LZAV_OFS_MIN 8 ///< The minimal reference offset to use.
-#define LZAV_OFS_TH1 ( 1 << 10 ) ///< Reference offset threshold 1.
-#define LZAV_OFS_TH2 ( 1 << 18 ) ///< Reference offset threshold 2.
+#define LZAV_OFS_TH1 (( 1 << 10 ) - 1 ) ///< Reference offset threshold 1.
+#define LZAV_OFS_TH2 (( 1 << 18 ) - 1 ) ///< Reference offset threshold 2.
 #define LZAV_FMT_CUR 2 ///< Stream format identifier used by the compressor.
 
 #define LZAV_HASH_C1 (uint32_t) 0x243F6A88 ///< Hash function constant 1.
@@ -624,7 +624,7 @@ static inline uint8_t* lzav_write_blk_2( uint8_t* op, size_t lc, size_t rc,
 	// Write a reference block.
 
 	static const int ocsh[ 4 ] = { 0, 0, 0, 3 };
-	const size_t bt = 1 + ( d > LZAV_OFS_TH1 - 1 ) + ( d > LZAV_OFS_TH2 - 1 );
+	const size_t bt = 1 + ( d > LZAV_OFS_TH1 ) + ( d > LZAV_OFS_TH2 );
 
 	if( LZAV_LIKELY( rc < 16 ))
 	{
@@ -1522,11 +1522,12 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 
 	#define LZAV_SET_IPD_CV( x, v, sh ) \
 		const size_t d = ( x ) << csh | cv; \
-		ipd = op - d; \
-		if( LZAV_UNLIKELY( (uint8_t*) dst + d > op )) \
-			goto _err_refoob; \
 		csh = ( sh ); \
-		cv = ( v )
+		const size_t md = (size_t) ( op - (uint8_t*) dst ); \
+		cv = ( v ); \
+		ipd = op - d; \
+		if( LZAV_UNLIKELY( d > md )) \
+			goto _err_refoob
 
 	#define LZAV_SET_IPD( x ) \
 		LZAV_SET_IPD_CV( x, 0, 0 )
@@ -1626,13 +1627,6 @@ static inline int lzav_decompress_2( const void* const src, void* const dst,
 			}
 
 			uint8_t* const opcc = op + cc;
-
-			#if defined( LZAV_PTR32 )
-			if( LZAV_UNLIKELY( opcc < op ))
-			{
-				goto _err_ptrovr;
-			}
-			#endif // defined( LZAV_PTR32 )
 
 			if( LZAV_UNLIKELY( opcc > ope ))
 			{
