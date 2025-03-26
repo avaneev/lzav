@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 4.13
+ * @version 4.14
  *
  * @brief The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -37,7 +37,7 @@
 #define LZAV_INCLUDED
 
 #define LZAV_API_VER 0x107 ///< API version, unrelated to code's version.
-#define LZAV_VER_STR "4.13" ///< LZAV source code version string.
+#define LZAV_VER_STR "4.14" ///< LZAV source code version string.
 
 /**
  * @def LZAV_FMT_MIN
@@ -200,7 +200,7 @@
 
 #if LZAV_LITTLE_ENDIAN
 
-	#define LZAV_IEC32( x ) ( 0 )
+	#define LZAV_IEC32( x ) (void) 0
 
 #else // LZAV_LITTLE_ENDIAN
 
@@ -1902,7 +1902,7 @@ static inline int lzav_decompress_1( const void* const src, void* const dst,
 	#endif // LZAV_LITTLE_ENDIAN
 
 	#define LZAV_MEMMOVE( d, s, c ) \
-		{ uint8_t tmp[ c ]; memcpy( tmp, s, c ); memcpy( d, tmp, c ); } ( 0 )
+		{ uint8_t tmp[ c ]; memcpy( tmp, s, c ); memcpy( d, tmp, c ); } (void) 0
 
 	ip++; // Advance beyond prefix byte.
 
