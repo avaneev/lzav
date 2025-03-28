@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 4.14
+ * @version 4.15
  *
  * @brief The inclusion file for the "LZAV" in-memory data compression and
  * decompression algorithms.
@@ -37,7 +37,7 @@
 #define LZAV_INCLUDED
 
 #define LZAV_API_VER 0x107 ///< API version, unrelated to code's version.
-#define LZAV_VER_STR "4.14" ///< LZAV source code version string.
+#define LZAV_VER_STR "4.15" ///< LZAV source code version string.
 
 /**
  * @def LZAV_FMT_MIN
@@ -50,16 +50,6 @@
 	#define LZAV_FMT_MIN 1
 #endif // !defined( LZAV_FMT_MIN )
 
-// Decompression error codes:
-
-#define LZAV_E_PARAMS -1 ///< Incorrect function parameters.
-#define LZAV_E_SRCOOB -2 ///< Source buffer OOB.
-#define LZAV_E_DSTOOB -3 ///< Destination buffer OOB.
-#define LZAV_E_REFOOB -4 ///< Back-reference OOB.
-#define LZAV_E_DSTLEN -5 ///< Decompressed length mismatch.
-#define LZAV_E_UNKFMT -6 ///< Unknown stream format.
-#define LZAV_E_PTROVR -7 ///< Pointer overflow.
-
 /**
  * @def LZAV_NOEX
  * @brief Macro that defines the "noexcept" function specifier for C++
@@ -67,7 +57,7 @@
  */
 
 /**
- * @def LZAV_NP
+ * @def LZAV_NULL
  * @brief Macro that defines "nullptr" value, for C++ guidelines conformance.
  */
 
@@ -84,7 +74,7 @@
 	#include <cstdlib>
 
 	#define LZAV_NOEX noexcept
-	#define LZAV_NP nullptr
+	#define LZAV_NULL nullptr
 	#define LZAV_NS lzav
 
 #else // __cplusplus
@@ -94,7 +84,7 @@
 	#include <stdlib.h>
 
 	#define LZAV_NOEX
-	#define LZAV_NP 0
+	#define LZAV_NULL 0
 
 #endif // __cplusplus
 
@@ -160,7 +150,7 @@
 
 /**
  * @def LZAV_PTR32
- * @brief Macro that denotes that pointers are 32-bit.
+ * @brief Macro denotes that pointers are 32-bit.
  */
 
 #if SIZE_MAX <= 0xFFFFFFFFU
@@ -257,21 +247,46 @@
 
 #if defined( LZAV_NS )
 
-namespace LZAV_NS
-{
-	using std :: memset;
-	using std :: memcpy;
-	using std :: malloc;
-	using std :: free;
-	using std :: size_t;
-	using std :: intptr_t;
-	using std :: uint16_t;
-	using std :: uint32_t;
-	using uint8_t = unsigned char; // For C++ type aliasing compliance.
+namespace LZAV_NS {
 
-	#if defined( LZAV_ARCH64 )
-		using std :: uint64_t;
-	#endif // defined( LZAV_ARCH64 )
+using std :: memset;
+using std :: memcpy;
+using std :: malloc;
+using std :: free;
+using std :: size_t;
+using std :: intptr_t;
+using std :: uint16_t;
+using std :: uint32_t;
+using uint8_t = unsigned char; ///< For C++ type aliasing compliance.
+
+#if defined( LZAV_ARCH64 )
+	using std :: uint64_t;
+#endif // defined( LZAV_ARCH64 )
+
+namespace enum_wrapper {
+
+#endif // defined( LZAV_NS )
+
+/**
+ * @brief Decompression error codes.
+ */
+
+enum LZAV_ERROR
+{
+	LZAV_E_PARAMS = -1, ///< Incorrect function parameters.
+	LZAV_E_SRCOOB = -2, ///< Source buffer OOB.
+	LZAV_E_DSTOOB = -3, ///< Destination buffer OOB.
+	LZAV_E_REFOOB = -4, ///< Back-reference OOB.
+	LZAV_E_DSTLEN = -5, ///< Decompressed length mismatch.
+	LZAV_E_UNKFMT = -6, ///< Unknown stream format.
+	LZAV_E_PTROVR = -7 ///< Pointer overflow.
+};
+
+#if defined( LZAV_NS )
+
+} // namespace enum_wrapper
+
+using namespace enum_wrapper;
 
 #endif // defined( LZAV_NS )
 
@@ -798,14 +813,14 @@ static inline void lzav_ht_init( uint8_t* const ht, const size_t htsize,
  * @param srcl Source data length, in bytes, can be 0: in this case the
  * compressed length is assumed to be 0 as well.
  * @param dstl Destination buffer's capacity, in bytes.
- * @param ext_buf External buffer to use for hash-table, set to 0 for the
+ * @param ext_buf External buffer to use for hash-table, set to null for the
  * function to manage memory itself (via standard `malloc`). Supplying a
  * pre-allocated buffer is useful if compression is performed during
  * application's operation often: this reduces memory allocation overhead and
  * fragmentation. Note that the access to the supplied buffer is not
  * implicitly thread-safe. Buffer's address must be aligned to 32 bits.
  * @param ext_bufl The capacity of the `ext_buf`, in bytes, should be a
- * power-of-2 value. Set to 0 if `ext_buf` is 0. The capacity should not be
+ * power-of-2 value. Set to 0 if `ext_buf` is null. The capacity should not be
  * lesser than `4*srcl`, and for default compression ratio should not be
  * greater than 1 MiB. Same `ext_bufl` value can be used for any smaller
  * source data. Using smaller `ext_bufl` values reduces the compression ratio
@@ -820,7 +835,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 	const int srcl, const int dstl, void* const ext_buf,
 	const int ext_bufl ) LZAV_NOEX
 {
-	if(( srcl <= 0 ) | ( src == LZAV_NP ) | ( dst == LZAV_NP ) |
+	if(( srcl <= 0 ) | ( src == LZAV_NULL ) | ( dst == LZAV_NULL ) |
 		( src == dst ) | ( dstl < lzav_compress_bound( srcl )))
 	{
 		return( 0 );
@@ -852,13 +867,13 @@ static inline int lzav_compress( const void* const src, void* const dst,
 	}
 
 	uint32_t stack_buf[ 4096 ]; // On-stack hash-table.
-	void* alloc_buf = LZAV_NP; // Hash-table allocated on heap.
+	void* alloc_buf = LZAV_NULL; // Hash-table allocated on heap.
 	uint8_t* ht = (uint8_t*) stack_buf; // The actual hash-table pointer.
 
 	size_t htsize; // Hash-table's size in bytes (power-of-2).
 	htsize = ( 1 << 7 ) * sizeof( uint32_t ) * 4;
 
-	if( ext_buf == LZAV_NP )
+	if( ext_buf == LZAV_NULL )
 	{
 		while( htsize != ( 1 << 20 ) && ( htsize >> 2 ) < (size_t) srcl )
 		{
@@ -869,7 +884,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 		{
 			alloc_buf = malloc( htsize );
 
-			if( alloc_buf == LZAV_NP )
+			if( alloc_buf == LZAV_NULL )
 			{
 				return( 0 );
 			}
@@ -1109,7 +1124,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 		ip++;
 	}
 
-	if( alloc_buf != LZAV_NP )
+	if( alloc_buf != LZAV_NULL )
 	{
 		free( alloc_buf );
 	}
@@ -1138,7 +1153,7 @@ static inline int lzav_compress( const void* const src, void* const dst,
 static inline int lzav_compress_default( const void* const src,
 	void* const dst, const int srcl, const int dstl ) LZAV_NOEX
 {
-	return( lzav_compress( src, dst, srcl, dstl, LZAV_NP, 0 ));
+	return( lzav_compress( src, dst, srcl, dstl, LZAV_NULL, 0 ));
 }
 
 /**
@@ -1160,7 +1175,7 @@ static inline int lzav_compress_default( const void* const src,
 static inline int lzav_compress_hi( const void* const src, void* const dst,
 	const int srcl, const int dstl ) LZAV_NOEX
 {
-	if(( srcl <= 0 ) | ( src == LZAV_NP ) | ( dst == LZAV_NP ) |
+	if(( srcl <= 0 ) | ( src == LZAV_NULL ) | ( dst == LZAV_NULL ) |
 		( src == dst ) | ( dstl < lzav_compress_bound_hi( srcl )))
 	{
 		return( 0 );
@@ -1201,7 +1216,7 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 
 	uint8_t* const ht = (uint8_t*) malloc( htsize ); // The hash-table pointer.
 
-	if( ht == LZAV_NP )
+	if( ht == LZAV_NULL )
 	{
 		return( 0 );
 	}
@@ -2130,7 +2145,7 @@ _err_dstlen:
 static inline int lzav_decompress_partial( const void* const src,
 	void* const dst, const int srcl, const int dstl ) LZAV_NOEX
 {
-	if( srcl <= 0 || src == LZAV_NP || dst == LZAV_NP || src == dst ||
+	if( srcl <= 0 || src == LZAV_NULL || dst == LZAV_NULL || src == dst ||
 		dstl <= 0 )
 	{
 		return( 0 );
@@ -2177,7 +2192,7 @@ static inline int lzav_decompress_partial( const void* const src,
  * some error happened. Always returns a negative value if the resulting
  * decompressed data length differs from `dstl`. This means that error result
  * handling requires just a check for a negative return value (see the
- * `LZAV_E_*` macros for possible values).
+ * LZAV_ERROR enum for possible values).
  */
 
 static inline int lzav_decompress( const void* const src, void* const dst,
@@ -2193,7 +2208,7 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 		return( dstl == 0 ? 0 : LZAV_E_PARAMS );
 	}
 
-	if( src == LZAV_NP || dst == LZAV_NP || src == dst || dstl <= 0 )
+	if( src == LZAV_NULL || dst == LZAV_NULL || src == dst || dstl <= 0 )
 	{
 		return( LZAV_E_PARAMS );
 	}
@@ -2216,20 +2231,30 @@ static inline int lzav_decompress( const void* const src, void* const dst,
 	return( LZAV_E_UNKFMT );
 }
 
+#undef LZAV_NOEX
+#undef LZAV_NULL
+#undef LZAV_HASH_C1
+#undef LZAV_HASH_C2
+#undef LZAV_IEC32
+#undef LZAV_LIKELY
+#undef LZAV_UNLIKELY
+
 #if defined( LZAV_NS )
 
-}
+} // namespace LZAV_NS
 
-namespace
-{
-	using LZAV_NS :: lzav_compress_bound;
-	using LZAV_NS :: lzav_compress_bound_hi;
-	using LZAV_NS :: lzav_compress;
-	using LZAV_NS :: lzav_compress_default;
-	using LZAV_NS :: lzav_compress_hi;
-	using LZAV_NS :: lzav_decompress_partial;
-	using LZAV_NS :: lzav_decompress;
-}
+namespace {
+
+using namespace LZAV_NS :: enum_wrapper;
+using LZAV_NS :: lzav_compress_bound;
+using LZAV_NS :: lzav_compress_bound_hi;
+using LZAV_NS :: lzav_compress;
+using LZAV_NS :: lzav_compress_default;
+using LZAV_NS :: lzav_compress_hi;
+using LZAV_NS :: lzav_decompress_partial;
+using LZAV_NS :: lzav_decompress;
+
+} // namespace
 
 #endif // defined( LZAV_NS )
 
