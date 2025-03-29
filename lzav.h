@@ -39,6 +39,30 @@
 #define LZAV_API_VER 0x107 ///< API version, unrelated to code's version.
 #define LZAV_VER_STR "4.15" ///< LZAV source code version string.
 
+#ifdef LZAV_NAMESPACE
+#  define LZAV_CAT(A,B) A##B
+#  define LZAV_NAME2(A,B) LZAV_CAT(A,B)
+
+#  define lzav_ht_init LZAV_NAME2(LZAV_NAMESPACE, lzav_ht_init)
+#  define lzav_match_len LZAV_NAME2(LZAV_NAMESPACE, lzav_match_len)
+#  define lzav_match_len_r LZAV_NAME2(LZAV_NAMESPACE, lzav_match_len_r)
+
+#  define lzav_compress_bound LZAV_NAME2(LZAV_NAMESPACE, lzav_compress_bound)
+#  define lzav_compress_bound_hi LZAV_NAME2(LZAV_NAMESPACE, lzav_compress_bound_hi)
+
+#  define lzav_compress LZAV_NAME2(LZAV_NAMESPACE, lzav_compress)
+#  define lzav_compress_default LZAV_NAME2(LZAV_NAMESPACE, lzav_compress_default)
+#  define lzav_compress_hi LZAV_NAME2(LZAV_NAMESPACE, lzav_compress_hi)
+
+#  define lzav_write_blk_2 LZAV_NAME2(LZAV_NAMESPACE, lzav_write_blk_2)
+#  define lzav_write_fin_2 LZAV_NAME2(LZAV_NAMESPACE, lzav_write_fin_2)
+
+#  define lzav_decompress_2 LZAV_NAME2(LZAV_NAMESPACE, lzav_decompress_2)
+#  define lzav_decompress_1 LZAV_NAME2(LZAV_NAMESPACE, lzav_decompress_1)
+#  define lzav_decompress_partial LZAV_NAME2(LZAV_NAMESPACE, lzav_decompress_partial)
+#  define lzav_decompress LZAV_NAME2(LZAV_NAMESPACE, lzav_decompress)
+#endif
+
 /**
  * @def LZAV_FMT_MIN
  * @brief Minimal stream format id supported by the decompressor. You may set
