@@ -1129,8 +1129,8 @@ static inline int lzav_compress( const void* const src, void* const dst,
 		free( alloc_buf );
 	}
 
-	return( (int) ( lzav_write_fin_2( op, ipe - ipa + LZAV_LIT_FIN, ipa ) -
-		(uint8_t*) dst ));
+	uint8_t* final_pos = lzav_write_fin_2(op, ipe - ipa + LZAV_LIT_FIN, ipa);
+	return (int)(final_pos - (uint8_t*)dst);
 }
 
 /**
@@ -1425,7 +1425,7 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 			( pd >= ( (size_t) 1 << psh )) +
 			( pd >= ( (size_t) 1 << ( psh + 8 )));
 
-		if( LZAV_LIKELY( prc * ov > rc * pov ))
+		if (LZAV_LIKELY((prc > 0) && ((pov == 0) || ((double)prc / rc > (double)pov / ov))))
 		{
 			const uint8_t* const nipa = pip + prc;
 
@@ -1464,8 +1464,7 @@ static inline int lzav_compress_hi( const void* const src, void* const dst,
 		ipa = pip + prc;
 	}
 
-	free( ht );
-
+	if (ht) free(ht);
 	return( (int) ( lzav_write_fin_2( op, ipe - ipa + LZAV_LIT_FIN, ipa ) -
 		(uint8_t*) dst ));
 }
