@@ -102,7 +102,7 @@ a namespace with data compression functions):
 This way, LZAV symbols and functions can be referenced like
 `my_namespace::lzav_compress_default(...)`. Note that since all LZAV functions
 have a `static inline` specifier, there can be no ABI conflicts, even if the
-the header is included in unrelated, mixed C/C++, compilation units.
+header is included in unrelated, mixed C/C++, compilation units.
 
 ## Comparisons
 
@@ -163,11 +163,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.16**   |590 MB/s       |3600 MB/s      |40.83          |
+|**LZAV 4.16**   |590 MB/s       |3640 MB/s      |40.83          |
 |LZ4 1.9.4       |845 MB/s       |4960 MB/s      |47.60          |
 |Snappy 1.1.10   |690 MB/s       |3360 MB/s      |48.22          |
 |LZF 3.6         |455 MB/s       |1020 MB/s      |48.15          |
-|**LZAV 4.16 HI**|112 MB/s       |3520 MB/s      |35.58          |
+|**LZAV 4.16 HI**|112 MB/s       |3560 MB/s      |35.58          |
 |LZ4HC 1.9.4 -9  |43 MB/s        |4890 MB/s      |36.75          |
 
 ### LLVM clang-cl 18.1.8 x86-64, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz
@@ -176,7 +176,7 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.16**   |520 MB/s       |3080 MB/s      |40.83          |
+|**LZAV 4.16**   |520 MB/s       |3090 MB/s      |40.83          |
 |LZ4 1.9.4       |675 MB/s       |4560 MB/s      |47.60          |
 |Snappy 1.1.10   |415 MB/s       |2440 MB/s      |48.22          |
 |LZF 3.6         |310 MB/s       |700 MB/s       |48.15          |
