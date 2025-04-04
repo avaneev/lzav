@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 4.16
+ * @version 4.17
  *
  * @brief Self-contained inclusion file for the "LZAV" in-memory data
  * compression and decompression algorithms.
@@ -40,7 +40,7 @@
 #define LZAV_INCLUDED
 
 #define LZAV_API_VER 0x107 ///< API version, unrelated to source code version.
-#define LZAV_VER_STR "4.16" ///< LZAV source code version string.
+#define LZAV_VER_STR "4.17" ///< LZAV source code version string.
 
 /**
  * @def LZAV_FMT_MIN
@@ -75,7 +75,7 @@
  * @def LZAV_NS
  * @brief Macro that defines an actual implementation namespace in C++
  * environment, with export of relevant symbols to the global namespace
- * (if `LZAV_NS_CUSTOM` is undefined).
+ * (if @ref LZAV_NS_CUSTOM is undefined).
  */
 
 #if defined( __cplusplus )
@@ -572,8 +572,8 @@ static inline size_t lzav_match_len_r( const uint8_t* p1, const uint8_t* p2,
  * The overall compressed data is prefixed with a byte whose lower 4 bits
  * contain minimal reference length (mref), and the highest 4 bits contain
  * stream format identifier. Compressed data always finishes with
- * `LZAV_LIT_FIN` literals. The lzav_write_fin_2() function should be used to
- * finalize compression.
+ * @ref LZAV_LIT_FIN literals. The lzav_write_fin_2() function should be used
+ * to finalize compression.
  *
  * Except the last block, a literal block is always followed by a reference
  * block.
@@ -581,9 +581,10 @@ static inline size_t lzav_match_len_r( const uint8_t* p1, const uint8_t* p2,
  * @param op Output buffer pointer.
  * @param lc Literal length, in bytes.
  * @param rc Reference length, in bytes, not lesser than mref.
- * @param d Reference offset, in bytes. Should be lesser than `LZAV_WIN_LEN`,
- * and not lesser than `rc` since fast copy on decompression cannot provide
- * consistency of copying of data that is not in the output yet.
+ * @param d Reference offset, in bytes. Should be lesser than
+ * @ref LZAV_WIN_LEN, and not lesser than `rc` since fast copy on
+ * decompression cannot provide consistency of copying of data that is not in
+ * the output yet.
  * @param ipa Literals anchor pointer.
  * @param cbpp Pointer to the pointer to the latest offset carry block header.
  * Cannot be 0, but the contained pointer can be 0 (initial value).
@@ -730,7 +731,7 @@ static inline uint8_t* lzav_write_blk_2( uint8_t* op, size_t lc, size_t rc,
  * Stream format 2.
  *
  * @param op Output buffer pointer.
- * @param lc Literal length, in bytes. Not less than `LZAV_LIT_FIN`.
+ * @param lc Literal length, in bytes. Not less than @ref LZAV_LIT_FIN.
  * @param ipa Literals anchor pointer.
  * @return Incremented output buffer pointer.
  */
@@ -2303,8 +2304,17 @@ using LZAV_NS :: lzav_decompress;
 
 #endif // defined( LZAV_NS )
 
+// Defines for Doxygen.
+
+#if !defined( LZAV_NS_CUSTOM )
+	#define LZAV_NS_CUSTOM
+#endif // !defined( LZAV_NS_CUSTOM )
+
+#undef LZAV_NS_CUSTOM
 #undef LZAV_NOEX
 #undef LZAV_NULL
+#undef LZAV_X86
+#undef LZAV_GCC_BUILTINS
 #undef LZAV_IEC32
 #undef LZAV_LIKELY
 #undef LZAV_UNLIKELY
