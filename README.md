@@ -152,11 +152,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.18**   |600 MB/s       |3810 MB/s      |40.83          |
+|**LZAV 4.19**   |601 MB/s       |3810 MB/s      |40.82          |
 |LZ4 1.9.4       |700 MB/s       |4570 MB/s      |47.60          |
 |Snappy 1.1.10   |495 MB/s       |3230 MB/s      |48.22          |
 |LZF 3.6         |395 MB/s       |800 MB/s       |48.15          |
-|**LZAV 4.18 HI**|129 MB/s       |3770 MB/s      |35.58          |
+|**LZAV 4.19 HI**|133 MB/s       |3770 MB/s      |35.58          |
 |LZ4HC 1.9.4 -9  |40 MB/s        |4360 MB/s      |36.75          |
 
 ### LLVM clang 18.1.8 x86-64, AlmaLinux 9.3, Xeon E-2386G (RocketLake), 5.1 GHz
@@ -165,11 +165,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.18**   |590 MB/s       |3620 MB/s      |40.83          |
+|**LZAV 4.19**   |590 MB/s       |3630 MB/s      |40.82          |
 |LZ4 1.9.4       |848 MB/s       |4980 MB/s      |47.60          |
 |Snappy 1.1.10   |690 MB/s       |3360 MB/s      |48.22          |
 |LZF 3.6         |455 MB/s       |1000 MB/s      |48.15          |
-|**LZAV 4.18 HI**|112 MB/s       |3500 MB/s      |35.58          |
+|**LZAV 4.19 HI**|113 MB/s       |3520 MB/s      |35.58          |
 |LZ4HC 1.9.4 -9  |43 MB/s        |4920 MB/s      |36.75          |
 
 ### LLVM clang-cl 18.1.8 x86-64, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz
@@ -178,11 +178,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.18**   |502 MB/s       |3120 MB/s      |40.83          |
+|**LZAV 4.19**   |507 MB/s       |3080 MB/s      |40.82          |
 |LZ4 1.9.4       |675 MB/s       |4560 MB/s      |47.60          |
 |Snappy 1.1.10   |415 MB/s       |2440 MB/s      |48.22          |
 |LZF 3.6         |310 MB/s       |700 MB/s       |48.15          |
-|**LZAV 4.18 HI**|114 MB/s       |3040 MB/s      |35.58          |
+|**LZAV 4.19 HI**|114 MB/s       |3050 MB/s      |35.58          |
 |LZ4HC 1.9.4 -9  |36 MB/s        |4430 MB/s      |36.75          |
 
 P.S. Popular Zstd's benchmark was not included here, because it is not a pure
