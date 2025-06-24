@@ -215,6 +215,9 @@ competitive compression ratios while having fast compression speeds.
 data should be compressed in chunks of at least 32 MB. Using smaller chunks
 may reduce the achieved compression ratio.
 
+4. If there is need to use custom malloc & free functions like for example on FREERTOS systems,
+just add definition symbols like for example: `LZAV_MALLOC=pvPortMalloc LZAV_FREE=vPortFree`
+
 ## Thanks
 
 * [Paul Dreik](https://github.com/pauldreik), for finding memcpy UB in the

@@ -418,6 +418,31 @@ using namespace enum_wrapper;
 #endif // defined( LZAV_NS )
 
 /**
+ *
+ * @param size size of memory to be allocated
+ * @return void pointer to allocated memory
+ */
+	static inline void *lzav_malloc(size_t size) {
+#if defined(LZAV_MALLOC)
+		return LZAV_MALLOC(size);
+#else
+	return malloc(size);
+#endif
+	}
+
+/**
+ *
+ * @param p pointer to the memory to be deallocated
+ */
+	static inline void lzav_free(void *p) {
+#if defined(LZAV_FREE)
+		LFS_FREE(p);
+#else
+		free(p);
+#endif
+	}
+
+/**
  * @brief Compression algorithm's parameters.
  */
 
@@ -1022,7 +1047,7 @@ LZAV_INLINE int lzav_compress( const void* const src, void* const dst,
 
 		if( htsize > sizeof( stack_buf ))
 		{
-			alloc_buf = malloc( htsize );
+			alloc_buf = lzav_malloc( htsize );
 
 			if( alloc_buf == LZAV_NULL )
 			{
@@ -1265,7 +1290,7 @@ LZAV_INLINE int lzav_compress( const void* const src, void* const dst,
 
 	if( alloc_buf != LZAV_NULL )
 	{
-		free( alloc_buf );
+		lzav_free( alloc_buf );
 	}
 
 	return( (int) ( op - (uint8_t*) dst ));
@@ -1390,7 +1415,7 @@ LZAV_INLINE int lzav_compress_hi( const void* const src, void* const dst,
 		htsize <<= 1;
 	}
 
-	uint8_t* const ht = (uint8_t*) malloc( htsize ); // Hash-table pointer.
+	uint8_t* const ht = (uint8_t*) lzav_malloc( htsize ); // Hash-table pointer.
 
 	if( ht == LZAV_NULL )
 	{
@@ -1584,7 +1609,7 @@ LZAV_INLINE int lzav_compress_hi( const void* const src, void* const dst,
 
 	op = lzav_write_fin_2( op, (size_t) ( ipe - ipa + LZAV_LIT_FIN ), ipa );
 
-	free( ht );
+	lzav_free( ht );
 
 	return( (int) ( op - (uint8_t*) dst ));
 }
