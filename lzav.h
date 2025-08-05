@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 4.22
+ * @version 4.23
  *
  * @brief Self-contained inclusion file for the "LZAV" in-memory data
  * compression and decompression algorithms.
@@ -40,7 +40,7 @@
 #define LZAV_INCLUDED
 
 #define LZAV_API_VER 0x109 ///< API version, unrelated to source code version.
-#define LZAV_VER_STR "4.22" ///< LZAV source code version string.
+#define LZAV_VER_STR "4.23" ///< LZAV source code version string.
 
 /**
  * @def LZAV_FMT_MIN
@@ -78,10 +78,25 @@
  * (if @ref LZAV_NS_CUSTOM is undefined).
  */
 
+/**
+ * @def LZAV_MALLOC
+ * @brief Macro that defines the call to the memory allocation function. Can
+ * be defined externally, if the standard `malloc` is unavailable.
+ *
+ * @param s Allocation size, in bytes.
+ */
+
+/**
+ * @def LZAV_FREE
+ * @brief Macro that defines the call to the memory free function. Can be
+ * defined externally, if the standard `free` is unavailable.
+ *
+ * @param p Memory block pointer to free.
+ */
+
 #if defined( __cplusplus )
 
 	#include <cstring>
-	#include <cstdlib>
 
 	#if __cplusplus >= 201103L
 
@@ -105,14 +120,31 @@
 		#define LZAV_NS lzav
 	#endif // defined( LZAV_NS_CUSTOM )
 
+	#if !defined( LZAV_MALLOC )
+		#include <cstdlib>
+		#define LZAV_MALLOC( s ) std :: malloc( s )
+	#endif // !defined( LZAV_MALLOC )
+
+	#if !defined( LZAV_FREE )
+		#define LZAV_FREE( p ) std :: free( p )
+	#endif // !defined( LZAV_FREE )
+
 #else // defined( __cplusplus )
 
 	#include <string.h>
-	#include <stdlib.h>
 	#include <stdint.h>
 
 	#define LZAV_NOEX
 	#define LZAV_NULL 0
+
+	#if !defined( LZAV_MALLOC )
+		#include <stdlib.h>
+		#define LZAV_MALLOC( s ) malloc( s )
+	#endif // !defined( LZAV_MALLOC )
+
+	#if !defined( LZAV_FREE )
+		#define LZAV_FREE( p ) free( p )
+	#endif // !defined( LZAV_FREE )
 
 #endif // defined( __cplusplus )
 
@@ -320,7 +352,8 @@
 
 	#define LZAV_PREFETCH( a ) __builtin_prefetch( a, 0, 3 )
 
-#elif defined( _MSC_VER ) && !defined( __INTEL_COMPILER )
+#elif defined( _MSC_VER ) && !defined( __INTEL_COMPILER ) && \
+	defined( LZAV_X86 )
 
 	#include <intrin.h>
 
@@ -373,8 +406,6 @@ namespace LZAV_NS {
 
 using std :: memcpy;
 using std :: memset;
-using std :: malloc;
-using std :: free;
 using std :: size_t;
 
 #if __cplusplus >= 201103L
@@ -1022,7 +1053,7 @@ LZAV_INLINE int lzav_compress( const void* const src, void* const dst,
 
 		if( htsize > sizeof( stack_buf ))
 		{
-			alloc_buf = malloc( htsize );
+			alloc_buf = LZAV_MALLOC( htsize );
 
 			if( alloc_buf == LZAV_NULL )
 			{
@@ -1265,7 +1296,7 @@ LZAV_INLINE int lzav_compress( const void* const src, void* const dst,
 
 	if( alloc_buf != LZAV_NULL )
 	{
-		free( alloc_buf );
+		LZAV_FREE( alloc_buf );
 	}
 
 	return( (int) ( op - (uint8_t*) dst ));
@@ -1390,7 +1421,7 @@ LZAV_INLINE int lzav_compress_hi( const void* const src, void* const dst,
 		htsize <<= 1;
 	}
 
-	uint8_t* const ht = (uint8_t*) malloc( htsize ); // Hash-table pointer.
+	uint8_t* const ht = (uint8_t*) LZAV_MALLOC( htsize ); // Hash-table ptr.
 
 	if( ht == LZAV_NULL )
 	{
@@ -1584,7 +1615,7 @@ LZAV_INLINE int lzav_compress_hi( const void* const src, void* const dst,
 
 	op = lzav_write_fin_2( op, (size_t) ( ipe - ipa + LZAV_LIT_FIN ), ipa );
 
-	free( ht );
+	LZAV_FREE( ht );
 
 	return( (int) ( op - (uint8_t*) dst ));
 }
@@ -2386,6 +2417,8 @@ using LZAV_NS :: lzav_decompress;
 #undef LZAV_NS_CUSTOM
 #undef LZAV_NOEX
 #undef LZAV_NULL
+#undef LZAV_MALLOC
+#undef LZAV_FREE
 #undef LZAV_X86
 #undef LZAV_COND_EC
 #undef LZAV_GCC_BUILTINS

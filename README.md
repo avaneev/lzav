@@ -11,8 +11,8 @@ LZAV algorithm's code is portable, cross-platform, scalar, header-only,
 inlineable C (C++ compatible). It supports big- and little-endian platforms,
 and any memory alignment models. The algorithm is efficient on both 32- and
 64-bit platforms. Incompressible data almost does not expand. Compliant with
-WebAssembly (WASI libc), and runs at just twice lower performance than native
-code.
+WebAssembly (WASI libc), and runs there at just twice lower performance than
+the native code.
 
 LZAV does not sacrifice internal out-of-bounds (OOB) checks for decompression
 speed. This means that LZAV can be used in strict conditions where OOB memory
@@ -154,11 +154,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.22**   |618 MB/s       |3820 MB/s      |40.57          |
+|**LZAV 4.23**   |618 MB/s       |3820 MB/s      |40.57          |
 |LZ4 1.9.4       |700 MB/s       |4570 MB/s      |47.60          |
 |Snappy 1.1.10   |495 MB/s       |3230 MB/s      |48.22          |
 |LZF 3.6         |395 MB/s       |800 MB/s       |48.15          |
-|**LZAV 4.22 HI**|133 MB/s       |3830 MB/s      |35.30          |
+|**LZAV 4.23 HI**|133 MB/s       |3830 MB/s      |35.30          |
 |LZ4HC 1.9.4 -9  |40 MB/s        |4360 MB/s      |36.75          |
 
 ### LLVM clang 18.1.8 x86-64, AlmaLinux 9.3, Xeon E-2386G (RocketLake), 5.1 GHz
@@ -167,11 +167,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.22**   |600 MB/s       |3550 MB/s      |40.57          |
+|**LZAV 4.23**   |600 MB/s       |3550 MB/s      |40.57          |
 |LZ4 1.9.4       |848 MB/s       |4980 MB/s      |47.60          |
 |Snappy 1.1.10   |690 MB/s       |3360 MB/s      |48.22          |
 |LZF 3.6         |455 MB/s       |1000 MB/s      |48.15          |
-|**LZAV 4.22 HI**|117 MB/s       |3530 MB/s      |35.30          |
+|**LZAV 4.23 HI**|117 MB/s       |3530 MB/s      |35.30          |
 |LZ4HC 1.9.4 -9  |43 MB/s        |4920 MB/s      |36.75          |
 
 ### LLVM clang-cl 18.1.8 x86-64, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz
@@ -180,11 +180,11 @@ Silesia compression corpus
 
 |Compressor      |Compression    |Decompression  |Ratio %        |
 |----            |----           |----           |----           |
-|**LZAV 4.22**   |520 MB/s       |3060 MB/s      |40.57          |
+|**LZAV 4.23**   |520 MB/s       |3060 MB/s      |40.57          |
 |LZ4 1.9.4       |675 MB/s       |4560 MB/s      |47.60          |
 |Snappy 1.1.10   |415 MB/s       |2440 MB/s      |48.22          |
 |LZF 3.6         |310 MB/s       |700 MB/s       |48.15          |
-|**LZAV 4.22 HI**|116 MB/s       |3090 MB/s      |35.30          |
+|**LZAV 4.23 HI**|116 MB/s       |3090 MB/s      |35.30          |
 |LZ4HC 1.9.4 -9  |36 MB/s        |4430 MB/s      |36.75          |
 
 P.S. Popular Zstd's benchmark was not included here, because it is not a pure
