@@ -149,40 +149,40 @@ visit [lzbench](https://github.com/inikep/lzbench).
 
 Silesia compression corpus
 
-|Compressor      |Compression    |Decompression  |Ratio %        |
-|----            |----           |----           |----           |
-|**LZAV 5.0**    |605 MB/s       |3760 MB/s      |40.23          |
-|LZ4 1.9.4       |700 MB/s       |4570 MB/s      |47.60          |
-|Snappy 1.1.10   |495 MB/s       |3230 MB/s      |48.22          |
-|LZF 3.6         |395 MB/s       |800 MB/s       |48.15          |
-|**LZAV 5.0 HI** |133 MB/s       |3700 MB/s      |35.13          |
-|LZ4HC 1.9.4 -9  |40 MB/s        |4360 MB/s      |36.75          |
+| Compressor      | Compression | Decompression | Ratio % |
+|-----------------|-------------|---------------|---------|
+| **LZAV 5.1**    | 602 MB/s    | 3770 MB/s     | 40.23   |
+| LZ4 1.9.4       | 700 MB/s    | 4570 MB/s     | 47.60   |
+| Snappy 1.1.10   | 495 MB/s    | 3230 MB/s     | 48.22   |
+| LZF 3.6         | 395 MB/s    | 800 MB/s      | 48.15   |
+| **LZAV 5.1 HI** | 133 MB/s    | 3700 MB/s     | 35.13   |
+| LZ4HC 1.9.4 -9  | 40 MB/s     | 4360 MB/s     | 36.75   |
 
 ### LLVM clang 19.1.7 x86-64, AlmaLinux 9.3, Xeon E-2386G (RocketLake), 5.1 GHz
 
 Silesia compression corpus
 
-|Compressor      |Compression    |Decompression  |Ratio %        |
-|----            |----           |----           |----           |
-|**LZAV 5.0**    |595 MB/s       |3400 MB/s      |40.23          |
-|LZ4 1.9.4       |848 MB/s       |4980 MB/s      |47.60          |
-|Snappy 1.1.10   |690 MB/s       |3360 MB/s      |48.22          |
-|LZF 3.6         |455 MB/s       |1000 MB/s      |48.15          |
-|**LZAV 5.0 HI** |113 MB/s       |3300 MB/s      |35.13          |
-|LZ4HC 1.9.4 -9  |43 MB/s        |4920 MB/s      |36.75          |
+| Compressor      | Compression | Decompression | Ratio % |
+|-----------------|-------------|---------------|---------|
+| **LZAV 5.1**    | 605 MB/s    | 3400 MB/s     | 40.23   |
+| LZ4 1.9.4       | 848 MB/s    | 4980 MB/s     | 47.60   |
+| Snappy 1.1.10   | 690 MB/s    | 3360 MB/s     | 48.22   |
+| LZF 3.6         | 455 MB/s    | 1000 MB/s     | 48.15   |
+| **LZAV 5.1 HI** | 113 MB/s    | 3340 MB/s     | 35.13   |
+| LZ4HC 1.9.4 -9  | 43 MB/s     | 4920 MB/s     | 36.75   |
 
 ### LLVM clang-cl 18.1.8 x86-64, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz
 
 Silesia compression corpus
 
-|Compressor      |Compression    |Decompression  |Ratio %        |
-|----            |----           |----           |----           |
-|**LZAV 5.0**    |505 MB/s       |2910 MB/s      |40.23          |
-|LZ4 1.9.4       |675 MB/s       |4560 MB/s      |47.60          |
-|Snappy 1.1.10   |415 MB/s       |2440 MB/s      |48.22          |
-|LZF 3.6         |310 MB/s       |700 MB/s       |48.15          |
-|**LZAV 5.0 HI** |111 MB/s       |2920 MB/s      |35.13          |
-|LZ4HC 1.9.4 -9  |36 MB/s        |4430 MB/s      |36.75          |
+| Compressor      | Compression | Decompression | Ratio % |
+|-----------------|-------------|---------------|---------|
+| **LZAV 5.1**    | 512 MB/s    | 2940 MB/s     | 40.23   |
+| LZ4 1.9.4       | 675 MB/s    | 4560 MB/s     | 47.60   |
+| Snappy 1.1.10   | 415 MB/s    | 2440 MB/s     | 48.22   |
+| LZF 3.6         | 310 MB/s    | 700 MB/s      | 48.15   |
+| **LZAV 5.1 HI** | 103 MB/s    | 2940 MB/s     | 35.13   |
+| LZ4HC 1.9.4 -9  | 36 MB/s     | 4430 MB/s     | 36.75   |
 
 P.S. Popular Zstd's benchmark was not included here, because it is not a pure
 LZ77, much harder to integrate, and has a much larger code size - a different
@@ -190,10 +190,10 @@ league, close to zlib. Here are author's Zstd measurements with
 [TurboBench](https://github.com/powturbo/TurboBench/releases), on Ryzen 3700X,
 on Silesia dataset:
 
-|Compressor      |Compression    |Decompression  |Ratio %        |
-|----            |----           |----           |----           |
-|zstd 1.5.5 -1   |460 MB/s       |1870 MB/s      |41.0           |
-|zstd 1.5.5 1    |436 MB/s       |1400 MB/s      |34.6           |
+| Compressor      | Compression | Decompression | Ratio % |
+|-----------------|-------------|---------------|---------|
+| zstd 1.5.5 -1   | 460 MB/s    | 1870 MB/s     | 41.0    |
+| zstd 1.5.5 1    | 436 MB/s    | 1400 MB/s     | 34.6    |
 
 ## Notes
 
