@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 5.2
+ * @version 5.3
  *
  * @brief Self-contained header file for the "LZAV" in-memory data compression
  * and decompression algorithms.
@@ -40,7 +40,7 @@
 #define LZAV_INCLUDED
 
 #define LZAV_API_VER 0x201 ///< API version; unrelated to source code version.
-#define LZAV_VER_STR "5.2" ///< LZAV source code version string.
+#define LZAV_VER_STR "5.3" ///< LZAV source code version string.
 
 /**
  * @def LZAV_FMT_MIN
@@ -551,6 +551,7 @@ enum LZAV_PARAM
 	LZAV_OFS_MIN = 8, ///< The minimal reference offset to use.
 	LZAV_OFS_TH1 = ( 1 << 10 ) - 1, ///< Reference offset threshold 1.
 	LZAV_OFS_TH2 = ( 1 << 15 ) - 1, ///< Reference offset threshold 2.
+	LZAV_MR5_THR = ( 1 << 18 ), ///< `srclen` threshold to use `mref=5`.
 	LZAV_FMT_CUR = 3 ///< The stream format identifier used by the compressor.
 };
 
@@ -969,27 +970,6 @@ LZAV_INLINE_F uint8_t* lzav_write_fin_3( uint8_t* LZAV_RESTRICT op,
 }
 
 /**
- * @brief Function returns the buffer size required for LZAV compression.
- *
- * @param srclen The length of the source data to be compressed.
- * @return The required allocation size for the destination compression
- * buffer. Always a positive value.
- */
-
-LZAV_INLINE_F int lzav_compress_bound( const int srclen ) LZAV_NOEX
-{
-	if( srclen <= 0 )
-	{
-		return( 16 );
-	}
-
-	const int k = 16 + 127 + 1;
-	const int l2 = srclen / ( k + 6 );
-
-	return(( srclen - l2 * 6 + k - 1 ) / k * 2 - l2 + srclen + 16 );
-}
-
-/**
  * @brief Function returns the buffer size required for the higher-ratio LZAV
  * compression.
  *
@@ -1008,6 +988,32 @@ LZAV_INLINE_F int lzav_compress_bound_hi( const int srclen ) LZAV_NOEX
 	const int l2 = srclen / ( 16 + 5 );
 
 	return(( srclen - l2 * 5 + 15 ) / 16 * 2 - l2 + srclen + 16 );
+}
+
+/**
+ * @brief Function returns the buffer size required for LZAV compression.
+ *
+ * @param srclen The length of the source data to be compressed.
+ * @return The required allocation size for the destination compression
+ * buffer. Always a positive value.
+ */
+
+LZAV_INLINE_F int lzav_compress_bound( const int srclen ) LZAV_NOEX
+{
+	if( srclen <= 0 )
+	{
+		return( 16 );
+	}
+
+	if( srclen < LZAV_MR5_THR )
+	{
+		return( lzav_compress_bound_hi( srclen ));
+	}
+
+	const int k = 16 + 127 + 1;
+	const int l2 = srclen / ( k + 6 );
+
+	return(( srclen - l2 * 6 + k - 1 ) / k * 2 - l2 + srclen + 16 );
 }
 
 /**
@@ -1437,6 +1443,10 @@ LZAV_INLINE_F int lzav_compress( const void* const src, void* const dst,
  *
  * See the lzav_compress() function for a more detailed description.
  *
+ * Note that for `srclen` greater or equal to LZAV_MR5_THR the
+ * lzav_compress_bound_hi() function should be used to obtain the bound size
+ * of the `dst` buffer.
+ *
  * @param[in] src Source (uncompressed) data pointer.
  * @param[out] dst Destination (compressed data) buffer pointer. The allocated
  * size should be at least lzav_compress_bound() bytes large.
@@ -1499,7 +1509,7 @@ LZAV_NO_INLINE int lzav_compress_mref6( const void* const src,
 LZAV_INLINE_F int lzav_compress_default( const void* const src,
 	void* const dst, const int srclen, const int dstlen ) LZAV_NOEX
 {
-	if( srclen < ( 1 << 18 ))
+	if( srclen < LZAV_MR5_THR )
 	{
 		return( lzav_compress_mref5( src, dst, srclen, dstlen,
 			LZAV_NULL, 0 ));
@@ -1900,7 +1910,7 @@ LZAV_NO_INLINE int lzav_decompress_3( const void* const src, void* const dst,
 		if LZAV_UNLIKELY( d > md ) \
 			goto _err_refoob
 
-	if LZAV_UNLIKELY(( (uintptr_t) ipe < 73 ) | ( (uintptr_t) ope < 63 ))
+	if LZAV_UNLIKELY(( ipe < ipet ) | ( ope < opet ))
 	{
 		opet = LZAV_NULL;
 	}
@@ -2286,7 +2296,7 @@ LZAV_NO_INLINE int lzav_decompress_2( const void* const src, void* const dst,
 	size_t cv = 0; // Reference offset carry value.
 	int csh = 0; // Reference offset carry shift.
 
-	if LZAV_UNLIKELY(( (uintptr_t) ipe < 70 ) | ( (uintptr_t) ope < 63 ))
+	if LZAV_UNLIKELY(( ipe < ipet ) | ( ope < opet ))
 	{
 		opet = LZAV_NULL;
 	}
