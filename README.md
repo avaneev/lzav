@@ -151,7 +151,7 @@ Silesia compression corpus
 
 | Compressor      | Compression | Decompression | Ratio % |
 |-----------------|-------------|---------------|---------|
-| **LZAV 5.3**    | 602 MB/s    | 3760 MB/s     | 40.23   |
+| **LZAV 5.3**    | 602 MB/s    | 3770 MB/s     | 40.23   |
 | LZ4 1.9.4       | 700 MB/s    | 4570 MB/s     | 47.60   |
 | Snappy 1.1.10   | 495 MB/s    | 3230 MB/s     | 48.22   |
 | LZF 3.6         | 395 MB/s    | 800 MB/s      | 48.15   |
@@ -177,11 +177,11 @@ Silesia compression corpus
 
 | Compressor      | Compression | Decompression | Ratio % |
 |-----------------|-------------|---------------|---------|
-| **LZAV 5.3**    | 508 MB/s    | 2960 MB/s     | 40.23   |
+| **LZAV 5.3**    | 512 MB/s    | 2970 MB/s     | 40.23   |
 | LZ4 1.9.4       | 675 MB/s    | 4560 MB/s     | 47.60   |
 | Snappy 1.1.10   | 415 MB/s    | 2440 MB/s     | 48.22   |
 | LZF 3.6         | 310 MB/s    | 700 MB/s      | 48.15   |
-| **LZAV 5.3 HI** | 113 MB/s    | 2920 MB/s     | 35.13   |
+| **LZAV 5.3 HI** | 113 MB/s    | 2960 MB/s     | 35.13   |
 | LZ4HC 1.9.4 -9  | 36 MB/s     | 4430 MB/s     | 36.75   |
 
 P.S. Popular Zstd's benchmark was not included here, because it is not a pure
