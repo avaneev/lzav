@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 5.3
+ * @version 5.4
  *
  * @brief Self-contained header file for the "LZAV" in-memory data compression
  * and decompression algorithms.
@@ -39,8 +39,8 @@
 #ifndef LZAV_INCLUDED
 #define LZAV_INCLUDED
 
-#define LZAV_API_VER 0x201 ///< API version; unrelated to source code version.
-#define LZAV_VER_STR "5.3" ///< LZAV source code version string.
+#define LZAV_API_VER 0x202 ///< API version; unrelated to source code version.
+#define LZAV_VER_STR "5.4" ///< LZAV source code version string.
 
 /**
  * @def LZAV_FMT_MIN
@@ -970,15 +970,15 @@ LZAV_INLINE_F uint8_t* lzav_write_fin_3( uint8_t* LZAV_RESTRICT op,
 }
 
 /**
- * @brief Function returns the buffer size required for the higher-ratio LZAV
- * compression.
+ * @brief Function returns the buffer size required for the minimal reference
+ * length of 5.
  *
  * @param srclen The length of the source data to be compressed.
  * @return The required allocation size for the destination compression
  * buffer. Always a positive value.
  */
 
-LZAV_INLINE_F int lzav_compress_bound_hi( const int srclen ) LZAV_NOEX
+LZAV_INLINE_F int lzav_compress_bound_mref5( const int srclen ) LZAV_NOEX
 {
 	if( srclen <= 0 )
 	{
@@ -991,6 +991,28 @@ LZAV_INLINE_F int lzav_compress_bound_hi( const int srclen ) LZAV_NOEX
 }
 
 /**
+ * @brief Function returns the buffer size required for the minimal reference
+ * length of 6.
+ *
+ * @param srclen The length of the source data to be compressed.
+ * @return The required allocation size for the destination compression
+ * buffer. Always a positive value.
+ */
+
+LZAV_INLINE_F int lzav_compress_bound_mref6( const int srclen ) LZAV_NOEX
+{
+	if( srclen <= 0 )
+	{
+		return( 16 );
+	}
+
+	const int k = 16 + 127 + 1;
+	const int l2 = srclen / ( k + 6 );
+
+	return(( srclen - l2 * 6 + k - 1 ) / k * 2 - l2 + srclen + 16 );
+}
+
+/**
  * @brief Function returns the buffer size required for LZAV compression.
  *
  * @param srclen The length of the source data to be compressed.
@@ -1000,20 +1022,28 @@ LZAV_INLINE_F int lzav_compress_bound_hi( const int srclen ) LZAV_NOEX
 
 LZAV_INLINE_F int lzav_compress_bound( const int srclen ) LZAV_NOEX
 {
-	if( srclen <= 0 )
-	{
-		return( 16 );
-	}
-
 	if( srclen < LZAV_MR5_THR )
 	{
-		return( lzav_compress_bound_hi( srclen ));
+		return( lzav_compress_bound_mref5( srclen ));
 	}
+	else
+	{
+		return( lzav_compress_bound_mref6( srclen ));
+	}
+}
 
-	const int k = 16 + 127 + 1;
-	const int l2 = srclen / ( k + 6 );
+/**
+ * @brief Function returns the buffer size required for the higher-ratio LZAV
+ * compression.
+ *
+ * @param srclen The length of the source data to be compressed.
+ * @return The required allocation size for the destination compression
+ * buffer. Always a positive value.
+ */
 
-	return(( srclen - l2 * 6 + k - 1 ) / k * 2 - l2 + srclen + 16 );
+LZAV_INLINE_F int lzav_compress_bound_hi( const int srclen ) LZAV_NOEX
+{
+	return( lzav_compress_bound_mref5( srclen ));
 }
 
 /**
@@ -1058,7 +1088,7 @@ LZAV_INLINE_F void lzav_ht_init( uint8_t* LZAV_RESTRICT const ht,
  * @param sh Hash value shift, in bits. Should be chosen so that `32-sh` is
  * equal to hash-table's log2 size.
  * @param hmask Hash value mask.
- * @return Hash value.
+ * @return Masked hash value.
  */
 
 LZAV_INLINE_F uint32_t lzav_hash( const uint32_t iw1, const uint32_t iw2,
@@ -1150,8 +1180,13 @@ LZAV_INLINE_F int lzav_compress( const void* const src, void* const dst,
 	const int extbuflen, const size_t mref ) LZAV_NOEX
 {
 	if(( srclen <= 0 ) | ( src == LZAV_NULL ) | ( dst == LZAV_NULL ) |
-		( src == dst ) | (( mref != 5 ) & ( mref != 6 )) |
-		( dstlen < lzav_compress_bound( srclen )))
+		( src == dst ) | (( mref != 5 ) & ( mref != 6 )))
+	{
+		return( 0 );
+	}
+
+	if(( mref == 5 && dstlen < lzav_compress_bound_mref5( srclen )) ||
+		( mref == 6 && dstlen < lzav_compress_bound_mref6( srclen )))
 	{
 		return( 0 );
 	}
@@ -1353,16 +1388,7 @@ LZAV_INLINE_F int lzav_compress( const void* const src, void* const dst,
 		{
 			// Try to consume literals by finding a match at a back-position.
 
-			ml -= rc;
-
-			if LZAV_LIKELY( ml > lc )
-			{
-				ml = lc;
-			}
-
-			ml = ( ml > wpo ? wpo : ml );
-
-			ml = lzav_match_len_r( ip, wp, ml );
+			ml = lzav_match_len_r( ip, wp, ( lc < wpo ? lc : wpo ));
 
 			if LZAV_UNLIKELY( ml != 0 )
 			{
@@ -1443,9 +1469,8 @@ LZAV_INLINE_F int lzav_compress( const void* const src, void* const dst,
  *
  * See the lzav_compress() function for a more detailed description.
  *
- * Note that for `srclen` greater or equal to LZAV_MR5_THR the
- * lzav_compress_bound_hi() function should be used to obtain the bound size
- * of the `dst` buffer.
+ * Note that the lzav_compress_bound_mref5() function should be used to obtain
+ * the bound size of the `dst` buffer.
  *
  * @param[in] src Source (uncompressed) data pointer.
  * @param[out] dst Destination (compressed data) buffer pointer. The allocated
@@ -1469,6 +1494,9 @@ LZAV_NO_INLINE int lzav_compress_mref5( const void* const src,
  * @brief Wrapper function for lzav_compress() with `mref` equal to 6.
  *
  * See the lzav_compress() function for a more detailed description.
+ *
+ * Note that the lzav_compress_bound_mref6() function should be used to obtain
+ * the bound size of the `dst` buffer.
  *
  * @param[in] src Source (uncompressed) data pointer.
  * @param[out] dst Destination (compressed data) buffer pointer. The allocated
@@ -1727,17 +1755,12 @@ LZAV_NO_INLINE int lzav_compress_hi( const void* const src, void* const dst,
 		{
 			// Try to consume literals by finding a match at back-position.
 
-			size_t ml = ( d > mle ? mle : d );
-			ml -= rc;
-
-			const size_t wpo = (size_t) ( wp - (const uint8_t*) src );
+			size_t ml = (size_t) ( wp - (const uint8_t*) src );
 
 			if LZAV_LIKELY( ml > lc )
 			{
 				ml = lc;
 			}
-
-			ml = ( ml > wpo ? wpo : ml );
 
 			ml = lzav_match_len_r( ip, wp, ml );
 
@@ -2735,6 +2758,8 @@ LZAV_INLINE_F int lzav_decompress( const void* const src, void* const dst,
 namespace {
 
 using namespace LZAV_NS :: enum_wrapper;
+using LZAV_NS :: lzav_compress_bound_mref5;
+using LZAV_NS :: lzav_compress_bound_mref6;
 using LZAV_NS :: lzav_compress_bound;
 using LZAV_NS :: lzav_compress_bound_hi;
 using LZAV_NS :: lzav_compress;
