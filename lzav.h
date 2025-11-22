@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 5.4
+ * @version 5.5
  *
  * @brief Self-contained header file for the "LZAV" in-memory data compression
  * and decompression algorithms.
@@ -39,12 +39,12 @@
 #ifndef LZAV_INCLUDED
 #define LZAV_INCLUDED
 
-#define LZAV_API_VER 0x202 ///< API version; unrelated to source code version.
-#define LZAV_VER_STR "5.4" ///< LZAV source code version string.
+#define LZAV_API_VER 0x203 ///< API version; unrelated to source code version.
+#define LZAV_VER_STR "5.5" ///< LZAV source code version string.
 
 /**
  * @def LZAV_FMT_MIN
- * @brief The minimal stream format id supported by the decompressor. A value
+ * @brief The minimal data format id supported by the decompressor. A value
  * of 3 can be defined externally to reduce the decompressor's code size.
  */
 
@@ -104,14 +104,25 @@
  * @param p Memory block pointer to free.
  */
 
+/**
+ * @def LZAV_DEF_MALLOC
+ * @brief Macro denotes that the default memory allocator is being used.
+ */
+
 #if !defined( LZAV_MALLOC )
+
 	#if defined( LZAV_FREE )
 		#error LZAV: the LZAV_FREE is defined while the LZAV_MALLOC is not.
 	#endif // defined( LZAV_FREE )
+
+	#define LZAV_DEF_MALLOC
+
 #else // !defined( LZAV_MALLOC )
+
 	#if !defined( LZAV_FREE )
 		#error LZAV: the LZAV_MALLOC is defined while the LZAV_FREE is not.
 	#endif // !defined( LZAV_FREE )
+
 #endif // !defined( LZAV_MALLOC )
 
 #if defined( __cplusplus )
@@ -125,14 +136,14 @@
 		#define LZAV_NOEX noexcept
 		#define LZAV_NULL nullptr
 
-		#if !defined( LZAV_MALLOC )
+		#if defined( LZAV_DEF_MALLOC )
 			#include <new>
 
 			#define LZAV_MALLOC( s, T ) \
 				new( std :: nothrow ) T[ s / sizeof( T )]
 
 			#define LZAV_FREE( p ) delete[] p
-		#endif // !defined( LZAV_MALLOC )
+		#endif // !defined( LZAV_DEF_MALLOC )
 
 	#else // __cplusplus >= 201103L
 
@@ -141,12 +152,12 @@
 		#define LZAV_NOEX throw()
 		#define LZAV_NULL NULL
 
-		#if !defined( LZAV_MALLOC )
+		#if defined( LZAV_DEF_MALLOC )
 			#include <cstdlib>
 
 			#define LZAV_MALLOC( s, T ) (T*) std :: malloc( s )
 			#define LZAV_FREE( p ) std :: free( p )
-		#endif // !defined( LZAV_MALLOC )
+		#endif // !defined( LZAV_DEF_MALLOC )
 
 	#endif // __cplusplus >= 201103L
 
@@ -164,12 +175,12 @@
 	#define LZAV_NOEX
 	#define LZAV_NULL NULL
 
-	#if !defined( LZAV_MALLOC )
+	#if defined( LZAV_DEF_MALLOC )
 		#include <stdlib.h>
 
 		#define LZAV_MALLOC( s, T ) (T*) malloc( s )
 		#define LZAV_FREE( p ) free( p )
-	#endif // !defined( LZAV_MALLOC )
+	#endif // !defined( LZAV_DEF_MALLOC )
 
 #endif // defined( __cplusplus )
 
@@ -502,7 +513,6 @@ using std :: size_t;
 
 #if __cplusplus >= 201103L
 
-	using std :: intptr_t;
 	using std :: uint16_t;
 	using std :: uint32_t;
 	using uint8_t = unsigned char; ///< For C++ type aliasing compliance.
@@ -528,7 +538,7 @@ enum LZAV_ERROR
 	LZAV_E_DSTOOB = -3, ///< Destination buffer out-of-bounds error.
 	LZAV_E_REFOOB = -4, ///< Back-reference out-of-bounds error.
 	LZAV_E_DSTLEN = -5, ///< Decompressed length mismatch error.
-	LZAV_E_UNKFMT = -6, ///< Unknown stream format error.
+	LZAV_E_UNKFMT = -6, ///< Unknown data format error.
 	LZAV_E_PTROVR = -7 ///< Pointer overflow error.
 };
 
@@ -552,7 +562,7 @@ enum LZAV_PARAM
 	LZAV_OFS_TH1 = ( 1 << 10 ) - 1, ///< Reference offset threshold 1.
 	LZAV_OFS_TH2 = ( 1 << 15 ) - 1, ///< Reference offset threshold 2.
 	LZAV_MR5_THR = ( 1 << 18 ), ///< `srclen` threshold to use `mref=5`.
-	LZAV_FMT_CUR = 3 ///< The stream format identifier used by the compressor.
+	LZAV_FMT_CUR = 3 ///< The data format identifier used by the compressor.
 };
 
 /**
@@ -764,14 +774,14 @@ LZAV_INLINE_F size_t lzav_match_len_r( const uint8_t* p1, const uint8_t* p2,
 }
 
 /**
- * @brief Internal LZAV block header writing function (stream format 3).
+ * @brief Internal LZAV block header writing function (data format 3).
  *
  * This internal function writes a block to the output buffer. It can be used
  * in custom compression algorithms.
  *
- * Stream format 3.
+ * Data format 3.
  *
- * A "raw" compressed stream consists of any quantity of unnumbered "blocks".
+ * A "raw" compressed data consists of any quantity of unnumbered "blocks".
  * A block starts with a header byte, followed by several optional bytes.
  * Bits 4-5 of the header specify the block's type.
  *
@@ -799,9 +809,9 @@ LZAV_INLINE_F size_t lzav_match_len_r( const uint8_t* p1, const uint8_t* p2,
  *
  * The overall compressed data are prefixed with a byte whose lower 4 bits
  * contain the minimal reference length (`mref`), and the highest 4 bits
- * contain the stream format identifier. The compressed data always finish
- * with @ref LZAV_LIT_FIN literals. The lzav_write_fin_3() function should be
- * used to finalize compression.
+ * contain the data format identifier. The compressed data always finish with
+ * @ref LZAV_LIT_FIN literals. The lzav_write_fin_3() function should be used
+ * to finalize compression.
  *
  * Except for the last block, a literal block is always followed by a
  * reference block.
@@ -929,12 +939,12 @@ LZAV_INLINE_F uint8_t* lzav_write_blk_3( uint8_t* LZAV_RESTRICT op,
 }
 
 /**
- * @brief Internal LZAV finishing function (stream format 3).
+ * @brief Internal LZAV finishing function (data format 3).
  *
  * This internal function writes finishing literal block(s) to the output
  * buffer. It can be used in custom compression algorithms.
  *
- * Stream format 3.
+ * Data format 3.
  *
  * @param op Output buffer pointer.
  * @param lc Literal length, in bytes. Not less than @ref LZAV_LIT_FIN.
@@ -1134,7 +1144,7 @@ LZAV_INLINE_F void lzav_load_w2( uint16_t* LZAV_RESTRICT const ov,
  * @brief LZAV compression function with an external buffer option.
  *
  * The function performs in-memory data compression using the LZAV compression
- * algorithm and stream format. The function produces "raw" compressed data
+ * algorithm and data format. The function produces "raw" compressed data
  * without a header containing the data length, identifier, or checksum.
  *
  * The function relies on forced code inlining meaning its multiple calls
@@ -1283,8 +1293,8 @@ LZAV_INLINE_F int lzav_compress( const void* const src, void* const dst,
 	uint8_t* cbp = op; // Pointer to the latest offset carry block header.
 	int csh = 0; // Offset carry shift.
 
-	intptr_t mavg = 100 << 17; // Running average of hash match rate (*2^11).
-		// Two-factor average: success (0-64) by average reference length.
+	size_t mavg = 100 << 17; // Running average of hash match rate (*2^11).
+		// Two-factor average of success (64) multiplied by reference length.
 
 	while LZAV_LIKELY( ip < ipet )
 	{
@@ -1407,18 +1417,15 @@ LZAV_INLINE_F int lzav_compress( const void* const src, void* const dst,
 
 			hp = (uint32_t*) ( ht + lzav_hash( iw1, iw2, 12, hmask ));
 			ipo += 2;
+			mavg -= mavg >> 10;
 			hp[ 2 ] = iw1;
 			hp[ 3 ] = ipo;
 
 			op = lzav_write_blk_3( op, lc, rc, d, ipa, &cbp, &csh, mref );
+
 			ip += rc;
-
-			#if defined( LZAV_PTR32 )
-			rc = ( rc > ( 1 << 14 ) - 1 ? ( 1 << 14 ) - 1 : rc );
-			#endif // defined( LZAV_PTR32 )
-
+			mavg += rc << 7;
 			ipa = ip;
-			mavg += ( (intptr_t) ( rc << 17 ) - mavg ) >> 10;
 			continue;
 		}
 
@@ -1439,11 +1446,9 @@ LZAV_INLINE_F int lzav_compress( const void* const src, void* const dst,
 
 		if( mavg < ( 200 << 10 ) && wp != ipa ) // Speed-up threshold.
 		{
-			// Compression speed-up technique that keeps the number of hash
-			// evaluations around 45% of compressed data length. In some cases
-			// reduces the number of blocks by several percent.
+			// Advance faster on data which is harder to compress.
 
-			ip += 1 + ( ipo & 1 );
+			ip += 1 + ( ipo & 1 ); // Simple dithering.
 
 			if LZAV_UNLIKELY( mavg < ( 130 << 10 ))
 			{
@@ -1451,7 +1456,7 @@ LZAV_INLINE_F int lzav_compress( const void* const src, void* const dst,
 
 				if LZAV_UNLIKELY( mavg < ( 100 << 10 ))
 				{
-					ip += (intptr_t) 100 - ( mavg >> 10 ); // Gradually fast.
+					ip += (size_t) 100 - ( mavg >> 10 ); // Gradually faster.
 				}
 			}
 		}
@@ -1550,7 +1555,7 @@ LZAV_INLINE_F int lzav_compress_default( const void* const src,
 }
 
 /**
- * @brief Calculates the estimated LZAV stream block's size.
+ * @brief Calculates the estimated LZAV block's size.
  *
  * @param lc Literal count, in bytes.
  * @param d Reference offset.
@@ -1747,7 +1752,7 @@ LZAV_NO_INLINE int lzav_compress_hi( const void* const src, void* const dst,
 
 		// Source data and hash-table entry match of suitable length.
 
-		const uint8_t* wp = ip - d;
+		const uint8_t* const wp = ip - d;
 		const uint8_t* const ip1 = ip + 1;
 		size_t lc = (size_t) ( ip - ipa );
 
@@ -1878,10 +1883,10 @@ LZAV_NO_INLINE int lzav_compress_hi( const void* const src, void* const dst,
  */
 
 /**
- * @brief Internal LZAV decompression function (stream format 3).
+ * @brief Internal LZAV decompression function (data format 3).
  *
  * The function decompresses "raw" data previously compressed into the LZAV
- * stream format 3.
+ * data format 3.
  *
  * This function should not be called directly, since it does not check the
  * format identifier.
@@ -2112,6 +2117,7 @@ LZAV_NO_INLINE int lzav_decompress_3( const void* const src, void* const dst,
 		}
 
 		const uint8_t* LZAV_RESTRICT ipd; // Source data pointer.
+
 		size_t ncv = bh >> 6; // Additional offset carry bits.
 		ip++;
 		cc = bh & 15;
@@ -2280,9 +2286,9 @@ _err_ptrovr:
 #if LZAV_FMT_MIN < 3
 
 /**
- * @brief Internal LZAV decompression function (stream format 2).
+ * @brief Internal LZAV decompression function (data format 2).
  *
- * Function decompresses "raw" data previously compressed into the LZAV stream
+ * Function decompresses "raw" data previously compressed into the LZAV data
  * format 2.
  *
  * This function should not be called directly since it does not check the
@@ -2637,7 +2643,7 @@ _err_ptrovr:
  * @brief LZAV decompression function (partial).
  *
  * The function decompresses "raw" data previously compressed into the LZAV
- * stream format, for partial or recovery decompression. For example, this
+ * data format, for partial or recovery decompression. For example, this
  * function can be used to decompress only an initial segment of a larger data
  * block.
  *
@@ -2683,7 +2689,7 @@ LZAV_INLINE_F int lzav_decompress_partial( const void* const src,
  * @brief LZAV decompression function.
  *
  * The function decompresses "raw" data previously compressed into the LZAV
- * stream format.
+ * data format.
  *
  * Note that while the function does perform checks to avoid OOB memory
  * accesses, and checks for decompressed data length equality, this is not a
@@ -2782,11 +2788,20 @@ using LZAV_NS :: lzav_decompress;
 	#define LZAV_NS_CUSTOM
 #endif // !defined( LZAV_NS_CUSTOM )
 
+#if !defined( LZAV_NS )
+	#define LZAV_NS
+	#undef LZAV_NS
+#endif // !defined( LZAV_NS )
+
+#if defined( LZAV_DEF_MALLOC )
+	#undef LZAV_MALLOC
+	#undef LZAV_FREE
+	#undef LZAV_DEF_MALLOC
+#endif // defined( LZAV_DEF_MALLOC )
+
 #undef LZAV_NS_CUSTOM
 #undef LZAV_NOEX
 #undef LZAV_NULL
-#undef LZAV_MALLOC
-#undef LZAV_FREE
 #undef LZAV_X86
 #undef LZAV_LITTLE_ENDIAN
 #undef LZAV_COND_EC
