@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 5.5
+ * @version 5.6
  *
  * @brief Self-contained header file for the "LZAV" in-memory data compression
  * and decompression algorithms.
@@ -40,7 +40,7 @@
 #define LZAV_INCLUDED
 
 #define LZAV_API_VER 0x203 ///< API version; unrelated to source code version.
-#define LZAV_VER_STR "5.5" ///< LZAV source code version string.
+#define LZAV_VER_STR "5.6" ///< LZAV source code version string.
 
 /**
  * @def LZAV_FMT_MIN
@@ -839,8 +839,9 @@ LZAV_INLINE_F uint8_t* lzav_write_blk_3( uint8_t* LZAV_RESTRICT op,
 
 	const int csh = *cshp;
 	rc = rc + 1 - mref;
-	**cbpp |= (uint8_t) (( d << 8 ) >> csh );
+	const size_t dc = ( d << 8 ) >> csh;
 	d >>= csh;
+	**cbpp |= (uint8_t) dc;
 
 	if LZAV_UNLIKELY( lc != 0 )
 	{
@@ -1120,6 +1121,7 @@ LZAV_INLINE_F uint32_t lzav_hash( const uint32_t iw1, const uint32_t iw2,
  *
  * The function loads a 16- or 8-bit value, depending on the `mref` parameter.
  * This function relies heavily on forced code inlining for performance.
+ * Endianness correction is not applied.
  *
  * @param[out] ov Pointer to the variable that receives the loaded value.
  * @param ip Input pointer.
@@ -1938,7 +1940,8 @@ LZAV_NO_INLINE int lzav_decompress_3( const void* const src, void* const dst,
 		if LZAV_UNLIKELY( d > md ) \
 			goto _err_refoob
 
-	if LZAV_UNLIKELY(( ipe < ipet ) | ( ope < opet ))
+	if LZAV_UNLIKELY(( ope < opet ) | ( ipe < ipet - 16 ) |
+		( ipe < ipet - 64 ))
 	{
 		opet = LZAV_NULL;
 	}
@@ -1968,10 +1971,9 @@ LZAV_NO_INLINE int lzav_decompress_3( const void* const src, void* const dst,
 
 			const int ncsh = ocsh[ bt ];
 			const int bt8 = (int) ( bt << 3 );
-			const size_t ncvm = cvm[ bt ];
 
 			LZAV_SET_IPD_CV(( bh >> 6 | bv << 2 ) & om[ bt ],
-				( bv >> ( bt8 - ncsh )) & ncvm, ncsh );
+				( bv >> ( bt8 - ncsh )) & cvm[ bt ], ncsh );
 
 			ip += bt;
 			bv >>= bt8;
@@ -2221,8 +2223,8 @@ LZAV_NO_INLINE int lzav_decompress_3( const void* const src, void* const dst,
 
 		if LZAV_LIKELY( ip < ipe )
 		{
-			bh = *ip;
 			memcpy( op, ipd, cc );
+			bh = *ip;
 			op = opcc;
 			continue;
 		}
@@ -2325,7 +2327,8 @@ LZAV_NO_INLINE int lzav_decompress_2( const void* const src, void* const dst,
 	size_t cv = 0; // Reference offset carry value.
 	int csh = 0; // Reference offset carry shift.
 
-	if LZAV_UNLIKELY(( ipe < ipet ) | ( ope < opet ))
+	if LZAV_UNLIKELY(( ope < opet ) | ( ipe < ipet - 16 ) |
+		( ipe < ipet - 64 ))
 	{
 		opet = LZAV_NULL;
 	}
