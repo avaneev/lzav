@@ -82,6 +82,12 @@ and AArch64 (Apple Silicon) architectures; Windows 10, AlmaLinux 9.3, and
 macOS 15.7. Full C++ compliance is enabled conditionally and automatically
 when the source code is compiled with a C++ compiler.
 
+## Ports
+
+* [C++, vcpkg](https://vcpkg.link/ports/lzav)
+* [FreeArc, by Shegorat](https://krinkels.org/resources/cls-lzav.579/)
+* [Rust, by pkolaczk](https://crates.io/crates/lzav)
+
 ## Customizing C++ namespace
 
 In C++ environments where it is undesirable to export LZAV symbols into the
@@ -194,6 +200,30 @@ on Silesia dataset:
 |-----------------|-------------|---------------|---------|
 | zstd 1.5.5 -1   | 460 MB/s    | 1870 MB/s     | 41.0    |
 | zstd 1.5.5 1    | 436 MB/s    | 1400 MB/s     | 34.6    |
+
+## Datasets Benchmark
+
+This section presents compression ratio comparisons for various popular
+datasets. Note that each file within these datasets was compressed
+individually, which contributed to the overall ratio.
+
+| Dataset               | Size, MiB | LZAV 5.6 | LZ4 1.9.4 | Snappy 1.1.10 | LZF 3.6 | Link |
+|-----------------------|-----------|----------|-----------|---------------|---------|------|
+| 4SICS 151020 PCAP     | 24.5      | 20.49    | 21.82     | 24.95         | 25.34   | [www.netresec.com](https://www.netresec.com/?page=PCAP4SICS)|
+| 4SICS 151022 PCAP     | 200.0     | 36.52    | 37.35     | 40.24         | 41.37   | [www.netresec.com](https://www.netresec.com/?page=PCAP4SICS)|
+| Calgary Large         | 3.1       | 44.69    | 51.97     | 51.76         | 49.07   | [data-compression.info](https://www.data-compression.info/Corpora/CalgaryCorpus/) |
+| Canterbury            | 2.68      | 38.34    | 43.73     | 45.42         | 42.49   | [corpus.canterbury.ac.nz](https://corpus.canterbury.ac.nz/) |
+| Canterbury Large      | 10.6      | 39.50    | 51.97     | 48.37         | 54.28   | [corpus.canterbury.ac.nz](https://corpus.canterbury.ac.nz/) |
+| Canterbury Artificial | 0.29      | 33.36    | 33.74     | 36.48         | 34.66   | [corpus.canterbury.ac.nz](https://corpus.canterbury.ac.nz/) |
+| employees_10KB.json   | 0.01      | 22.80    | 24.68     | 23.92         | 23.52   | [sample.json-format.com](https://sample.json-format.com/) |
+| employees_100KB.json  | 0.10      | 15.99    | 17.71     | 19.02         | 21.88   | [sample.json-format.com](https://sample.json-format.com/) |
+| employees_50MB.json   | 51.5      | 10.56    | 16.42     | 18.57         | 21.44   | [sample.json-format.com](https://sample.json-format.com/) |
+| enwik8                | 95.4      | 45.06    | 57.26     | 56.56         | 53.95   | [www.mattmahoney.net](https://www.mattmahoney.net/dc/textdata.html) |
+| enwik9                | 954.7     | 39.72    | 50.92     | 50.79         | 49.30   | [www.mattmahoney.net](https://www.mattmahoney.net/dc/textdata.html) |
+| Manzini               | 855.3     | 27.34    | 37.30     | 38.57         | 39.04   | [people.unipmn.it/manzini](https://people.unipmn.it/manzini/boosting/index.html) |
+| chr22.dna (Manzini)   | 33.0      | 40.73    | 52.82     | 44.53         | 55.86   | [people.unipmn.it/manzini](https://people.unipmn.it/manzini/boosting/index.html) |
+| w3c2 HTML (Manzini)   | 99.4      | 11.54    | 22.20     | 25.35         | 27.20   | [people.unipmn.it/manzini](https://people.unipmn.it/manzini/boosting/index.html) |
+| Silesia               | 202.1     | 40.23    | 47.60     | 48.17         | 48.15   | [github.com/MiloszKrajewski](https://github.com/MiloszKrajewski/SilesiaCorpus) |
 
 ## Notes
 
