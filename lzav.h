@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 5.6
+ * @version 5.7
  *
  * @brief Self-contained header file for the "LZAV" in-memory data compression
  * and decompression algorithms.
@@ -39,8 +39,8 @@
 #ifndef LZAV_INCLUDED
 #define LZAV_INCLUDED
 
-#define LZAV_API_VER 0x203 ///< API version; unrelated to source code version.
-#define LZAV_VER_STR "5.6" ///< LZAV source code version string.
+#define LZAV_API_VER 0x204 ///< API version; unrelated to source code version.
+#define LZAV_VER_STR "5.7" ///< LZAV source code version string.
 
 /**
  * @def LZAV_FMT_MIN
@@ -719,38 +719,29 @@ LZAV_INLINE_F size_t lzav_match_len( const uint8_t* const p1,
 /**
  * @brief Data match length finding function in the reverse direction.
  *
+ * Note that the function assumes `p1[ -1 ] == p2[ -1 ]`.
+ *
  * @param p1 The origin pointer to buffer 1.
  * @param p2 The origin pointer to buffer 2.
- * @param ml The maximal number of bytes to back-match.
+ * @param ml The maximal number of bytes to back-match. Cannot be 0.
  * @return The number of matching prior bytes, not including the origin
  * position.
  */
 
-LZAV_INLINE_F size_t lzav_match_len_r( const uint8_t* p1, const uint8_t* p2,
+LZAV_INLINE_F size_t lzav_match_len_r1( const uint8_t* p1, const uint8_t* p2,
 	const size_t ml ) LZAV_NOEX
 {
-	if LZAV_UNLIKELY( ml == 0 )
-	{
-		return( 0 );
-	}
-
-	if( p1[ -1 ] != p2[ -1 ])
-	{
-		return( 0 );
-	}
-
 	if( ml != 1 )
 	{
 		const uint8_t* const p1s = p1;
 		const uint8_t* const p1e = p1 - ml + 1;
 		p1--;
-		p2--;
 
 		while( p1 > p1e )
 		{
 			uint16_t v1, v2;
 			memcpy( &v1, p1 - 2, 2 );
-			memcpy( &v2, p2 - 2, 2 );
+			memcpy( &v2, p2 - 3, 2 );
 
 			const uint32_t vd = (uint32_t) ( v1 ^ v2 );
 
@@ -764,7 +755,7 @@ LZAV_INLINE_F size_t lzav_match_len_r( const uint8_t* p1, const uint8_t* p2,
 			p2 -= 2;
 		}
 
-		if( p1 == p1e && p1[ -1 ] != p2[ -1 ])
+		if( p1 == p1e && p1[ -1 ] != p2[ -2 ])
 		{
 			return( (size_t) ( p1s - p1 ));
 		}
@@ -1277,20 +1268,22 @@ LZAV_INLINE_F int lzav_compress( const void* const src, void* const dst,
 		}
 	}
 
-	// Initialize the hash-table. Each hash-table item consists of 2 tuples
-	// (4 initial match bytes; 32-bit source data offset).
-
-	uint32_t initv[ 2 ] = { 0, 0 };
-	memcpy( initv, src, 4 );
-
-	lzav_ht_init( ht, htsize, initv );
-
 	const uint32_t hmask = (uint32_t) (( htsize - 1 ) ^ 15 ); // Hash mask.
 	const uint8_t* ip = (const uint8_t*) src; // Source data pointer.
 	const uint8_t* const ipe = ip + srclen - LZAV_LIT_FIN; // End pointer.
 	const uint8_t* const ipet = ipe - 15 + LZAV_LIT_FIN; // Hashing threshold,
 		// avoids I/O OOB.
 	const uint8_t* ipa = ip; // Literals anchor pointer.
+
+	// Initialize the hash-table. Each hash-table item consists of 2 tuples
+	// (4 initial match bytes; 32-bit source data offset). Start at offset 1
+	// for non-zero back-match length.
+
+	uint32_t initv[ 2 ] = { 0, 1 };
+	ip++;
+	memcpy( initv, ip, 4 );
+
+	lzav_ht_init( ht, htsize, initv );
 
 	uint8_t* cbp = op; // Pointer to the latest offset carry block header.
 	int csh = 0; // Offset carry shift.
@@ -1375,19 +1368,19 @@ LZAV_INLINE_F int lzav_compress( const void* const src, void* const dst,
 
 		LZAV_PREFETCH( ip - 2 );
 
-		if LZAV_LIKELY( iw1 == hw1 ) // Replace tuple, or insert.
+		if LZAV_LIKELY( d > 31 )
 		{
-			if LZAV_LIKELY( d > 15 )
+			if LZAV_LIKELY( iw1 == hw1 ) // Replace tuple, or insert.
 			{
 				hp[ 1 ] = ipo;
 			}
-		}
-		else
-		{
-			hp[ 2 ] = hw1;
-			hp[ 3 ] = hp[ 1 ];
-			hp[ 0 ] = iw1;
-			hp[ 1 ] = ipo;
+			else
+			{
+				hp[ 2 ] = hw1;
+				hp[ 3 ] = hp[ 1 ];
+				hp[ 0 ] = iw1;
+				hp[ 1 ] = ipo;
+			}
 		}
 
 		wp = (const uint8_t*) src + wpo;
@@ -1396,18 +1389,14 @@ LZAV_INLINE_F int lzav_compress( const void* const src, void* const dst,
 		ip0 = ip;
 		lc = (size_t) ( ip - ipa );
 
-		if LZAV_UNLIKELY( lc != 0 )
+		if LZAV_UNLIKELY( lc != 0 && ip[ -1 ] == wp[ -1 ])
 		{
 			// Try to consume literals by finding a match at a back-position.
 
-			ml = lzav_match_len_r( ip, wp, ( lc < wpo ? lc : wpo ));
-
-			if LZAV_UNLIKELY( ml != 0 )
-			{
-				lc -= ml;
-				rc += ml;
-				ip -= ml;
-			}
+			ml = lzav_match_len_r1( ip, wp, ( lc < wpo ? lc : wpo ));
+			lc -= ml;
+			rc += ml;
+			ip -= ml;
 		}
 
 		if LZAV_LIKELY( d < (size_t) LZAV_WIN_LEN << csh << (( lc != 0 ) * 2 ))
@@ -1420,12 +1409,15 @@ LZAV_INLINE_F int lzav_compress( const void* const src, void* const dst,
 			hp = (uint32_t*) ( ht + lzav_hash( iw1, iw2, 12, hmask ));
 			ipo += 2;
 			mavg -= mavg >> 10;
-			hp[ 2 ] = iw1;
-			hp[ 3 ] = ipo;
+
+			hp[ 2 ] = hp[ 0 ];
+			hp[ 3 ] = hp[ 1 ];
+			ip += rc;
+			hp[ 0 ] = iw1;
+			hp[ 1 ] = ipo;
 
 			op = lzav_write_blk_3( op, lc, rc, d, ipa, &cbp, &csh, mref );
 
-			ip += rc;
 			mavg += rc << 7;
 			ipa = ip;
 			continue;
@@ -1662,15 +1654,6 @@ LZAV_NO_INLINE int lzav_compress_hi( const void* const src, void* const dst,
 
 	uint8_t* LZAV_RESTRICT const ht = (uint8_t*) alloc_buf; // Hash-table ptr.
 
-	// Initialize the hash-table. Each hash-table item consists of 8 tuples
-	// (4 initial match bytes; 32-bit source data offset). The last value of
-	// the last tuple is used as head tuple offset (an even value).
-
-	uint32_t initv[ 2 ] = { 0, 0 };
-	memcpy( initv, src, 4 );
-
-	lzav_ht_init( ht, htsize, initv );
-
 	const size_t mti = 12; // Maximal tuple offset, inclusive.
 	const uint32_t hmask = (uint32_t) (( htsize - 1 ) ^ 63 ); // Hash mask.
 	const uint8_t* ip = (const uint8_t*) src; // Source data pointer.
@@ -1678,6 +1661,17 @@ LZAV_NO_INLINE int lzav_compress_hi( const void* const src, void* const dst,
 	const uint8_t* const ipet = ipe - 15 + LZAV_LIT_FIN; // Hashing threshold,
 		// avoids I/O OOB.
 	const uint8_t* ipa = ip; // Literals anchor pointer.
+
+	// Initialize the hash-table. Each hash-table item consists of 8 tuples
+	// (4 initial match bytes; 32-bit source data offset). The last value of
+	// the last tuple is used as head tuple offset (an even value). Start at
+	// offset 2 for non-zero back-match length.
+
+	uint32_t initv[ 2 ] = { 0, 2 };
+	ip += 2;
+	memcpy( initv, ip, 4 );
+
+	lzav_ht_init( ht, htsize, initv );
 
 	uint8_t* cbp = op; // Pointer to the latest offset carry block header.
 	int csh = 0; // Offset carry shift.
@@ -1726,8 +1720,8 @@ LZAV_NO_INLINE int lzav_compress_hi( const void* const src, void* const dst,
 				// match length. Make sure `LZAV_LIT_FIN` literals remain
 				// on finish.
 
-				size_t ml = ( d0 > mle ? mle : d0 );
-				ml = lzav_match_len( ip, wp0, ml, 4 );
+				const size_t ml = lzav_match_len( ip, wp0,
+					( d0 > mle ? mle : d0 ), 4 );
 
 				if( ml > rc )
 				{
@@ -1758,7 +1752,7 @@ LZAV_NO_INLINE int lzav_compress_hi( const void* const src, void* const dst,
 		const uint8_t* const ip1 = ip + 1;
 		size_t lc = (size_t) ( ip - ipa );
 
-		if LZAV_UNLIKELY( lc != 0 )
+		if LZAV_UNLIKELY( lc != 0 && ip[ -1 ] == wp[ -1 ])
 		{
 			// Try to consume literals by finding a match at back-position.
 
@@ -1769,14 +1763,10 @@ LZAV_NO_INLINE int lzav_compress_hi( const void* const src, void* const dst,
 				ml = lc;
 			}
 
-			ml = lzav_match_len_r( ip, wp, ml );
-
-			if LZAV_UNLIKELY( ml != 0 )
-			{
-				lc -= ml;
-				rc += ml;
-				ip -= ml;
-			}
+			ml = lzav_match_len_r1( ip, wp, ml );
+			lc -= ml;
+			rc += ml;
+			ip -= ml;
 		}
 
 		if LZAV_UNLIKELY( d >= (size_t) LZAV_WIN_LEN << csh <<
