@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 5.7
+ * @version 5.8
  *
  * @brief Self-contained header file for the "LZAV" in-memory data compression
  * and decompression algorithms.
@@ -40,7 +40,7 @@
 #define LZAV_INCLUDED
 
 #define LZAV_API_VER 0x204 ///< API version; unrelated to source code version.
-#define LZAV_VER_STR "5.7" ///< LZAV source code version string.
+#define LZAV_VER_STR "5.8" ///< LZAV source code version string.
 
 /**
  * @def LZAV_FMT_MIN
@@ -538,7 +538,7 @@ enum LZAV_ERROR
 	LZAV_E_DSTOOB = -3, ///< Destination buffer out-of-bounds error.
 	LZAV_E_REFOOB = -4, ///< Back-reference out-of-bounds error.
 	LZAV_E_DSTLEN = -5, ///< Decompressed length mismatch error.
-	LZAV_E_UNKFMT = -6, ///< Unknown data format error.
+	LZAV_E_UNKFMT = -6, ///< Unknown data format or mref error.
 	LZAV_E_PTROVR = -7 ///< Pointer overflow error.
 };
 
@@ -795,7 +795,7 @@ LZAV_INLINE_F size_t lzav_match_len_r1( const uint8_t* p1, const uint8_t* p2,
  * Note that reference offsets can be much larger than the @ref LZAV_WIN_LEN
  * constant. This is due to offset carry bits, which create a dynamic LZ77
  * window instead of a fixed-length one. In practice, this encoding scheme
- * covers 99.3% of the offsets in the compressor's hash-table at any given
+ * covers 99.5% of the offsets in the compressor's hash-table at any given
  * time.
  *
  * The overall compressed data are prefixed with a byte whose lower 4 bits
@@ -1412,14 +1412,17 @@ LZAV_INLINE_F int lzav_compress( const void* const src, void* const dst,
 
 			hp[ 2 ] = hp[ 0 ];
 			hp[ 3 ] = hp[ 1 ];
+
 			ip += rc;
+			wp = ipa;
+
 			hp[ 0 ] = iw1;
 			hp[ 1 ] = ipo;
 
-			op = lzav_write_blk_3( op, lc, rc, d, ipa, &cbp, &csh, mref );
-
-			mavg += rc << 7;
 			ipa = ip;
+			mavg += rc << 7;
+
+			op = lzav_write_blk_3( op, lc, rc, d, wp, &cbp, &csh, mref );
 			continue;
 		}
 
@@ -1910,8 +1913,15 @@ LZAV_NO_INLINE int lzav_decompress_3( const void* const src, void* const dst,
 	uint8_t* op = (uint8_t*) dst; // Destination (decompressed data) pointer.
 	uint8_t* const ope = op + dstlen; // Destination boundary pointer.
 	uint8_t* opet = ope - 63; // Threshold for fast copy to destination.
-	*pwl = dstlen;
 	const size_t mref1 = (size_t) ( *ip & 15 ) - 1; // Minimal ref length - 1.
+
+	if LZAV_UNLIKELY( mref1 > 5 )
+	{
+		*pwl = 0;
+		return( LZAV_E_UNKFMT );
+	}
+
+	*pwl = dstlen;
 	size_t bh; // Current block header, updated in each branch.
 	size_t cv = 0; // Reference offset carry value.
 	int csh = 0; // Reference offset carry shift.
@@ -1959,8 +1969,8 @@ LZAV_NO_INLINE int lzav_decompress_3( const void* const src, void* const dst,
 			static const size_t cvm[ 4 ] = { 0, 0, 7, 31 };
 			static const int ocsh[ 4 ] = { 0, 0, 3, 5 };
 
-			const int ncsh = ocsh[ bt ];
 			const int bt8 = (int) ( bt << 3 );
+			const int ncsh = ocsh[ bt ];
 
 			LZAV_SET_IPD_CV(( bh >> 6 | bv << 2 ) & om[ bt ],
 				( bv >> ( bt8 - ncsh )) & cvm[ bt ], ncsh );

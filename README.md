@@ -157,11 +157,11 @@ Silesia compression corpus
 
 | Compressor      | Compression | Decompression | Ratio % |
 |-----------------|-------------|---------------|---------|
-| **LZAV 5.7**    | 623 MB/s    | 3790 MB/s     | 39.94   |
+| **LZAV 5.8**    | 625 MB/s    | 3790 MB/s     | 39.94   |
 | LZ4 1.9.4       | 700 MB/s    | 4570 MB/s     | 47.60   |
 | Snappy 1.1.10   | 495 MB/s    | 3230 MB/s     | 48.22   |
 | LZF 3.6         | 395 MB/s    | 800 MB/s      | 48.15   |
-| **LZAV 5.7 HI** | 134 MB/s    | 3700 MB/s     | 35.12   |
+| **LZAV 5.8 HI** | 134 MB/s    | 3700 MB/s     | 35.12   |
 | LZ4HC 1.9.4 -9  | 40 MB/s     | 4360 MB/s     | 36.75   |
 
 ### LLVM clang 19.1.7 x86-64, AlmaLinux 9.3, Xeon E-2386G (RocketLake), 5.1 GHz
@@ -170,11 +170,11 @@ Silesia compression corpus
 
 | Compressor      | Compression | Decompression | Ratio % |
 |-----------------|-------------|---------------|---------|
-| **LZAV 5.7**    | 614 MB/s    | 3490 MB/s     | 39.94   |
+| **LZAV 5.8**    | 620 MB/s    | 3490 MB/s     | 39.94   |
 | LZ4 1.9.4       | 848 MB/s    | 4980 MB/s     | 47.60   |
 | Snappy 1.1.10   | 690 MB/s    | 3360 MB/s     | 48.22   |
 | LZF 3.6         | 455 MB/s    | 1000 MB/s     | 48.15   |
-| **LZAV 5.7 HI** | 115 MB/s    | 3350 MB/s     | 35.12   |
+| **LZAV 5.8 HI** | 115 MB/s    | 3330 MB/s     | 35.12   |
 | LZ4HC 1.9.4 -9  | 43 MB/s     | 4920 MB/s     | 36.75   |
 
 ### LLVM clang-cl 18.1.8 x86-64, Windows 10, Ryzen 3700X (Zen2), 4.2 GHz
@@ -183,11 +183,11 @@ Silesia compression corpus
 
 | Compressor      | Compression | Decompression | Ratio % |
 |-----------------|-------------|---------------|---------|
-| **LZAV 5.7**    | 525 MB/s    | 3060 MB/s     | 39.94   |
+| **LZAV 5.8**    | 525 MB/s    | 3060 MB/s     | 39.94   |
 | LZ4 1.9.4       | 675 MB/s    | 4560 MB/s     | 47.60   |
 | Snappy 1.1.10   | 415 MB/s    | 2440 MB/s     | 48.22   |
 | LZF 3.6         | 310 MB/s    | 700 MB/s      | 48.15   |
-| **LZAV 5.7 HI** | 116 MB/s    | 2970 MB/s     | 35.12   |
+| **LZAV 5.8 HI** | 116 MB/s    | 2970 MB/s     | 35.12   |
 | LZ4HC 1.9.4 -9  | 36 MB/s     | 4430 MB/s     | 36.75   |
 
 P.S. Popular Zstd's benchmark was not included here, because it is not a pure
@@ -207,7 +207,7 @@ This section presents compression ratio comparisons for various popular
 datasets. Note that each file within these datasets was compressed
 individually, which contributed to the overall ratio.
 
-| Dataset               | Size, MiB | LZAV 5.7 | LZ4 1.9.4 | Snappy 1.1.10 | LZF 3.6 | Source |
+| Dataset               | Size, MiB | LZAV 5.8 | LZ4 1.9.4 | Snappy 1.1.10 | LZF 3.6 | Source |
 |-----------------------|-----------|----------|-----------|---------------|---------|--------|
 | 4SICS 151020 PCAP     | 24.5      | 20.47    | 21.82     | 24.95         | 25.34   | [www.netresec.com](https://www.netresec.com/?page=PCAP4SICS)|
 | 4SICS 151022 PCAP     | 200.0     | 36.45    | 37.35     | 40.24         | 41.37   | [www.netresec.com](https://www.netresec.com/?page=PCAP4SICS)|
