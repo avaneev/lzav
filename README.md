@@ -242,8 +242,3 @@ compression speeds.
 3. LZAV supports compression of continuous data blocks of up to 2 GB. Larger
 data should be compressed in chunks of at least 16 MB. Using smaller chunks
 may reduce the achieved compression ratio.
-
-## Thanks
-
-* [Paul Dreik](https://github.com/pauldreik), for finding memcpy UB in the
-decompressor.
