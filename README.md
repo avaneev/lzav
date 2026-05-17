@@ -84,6 +84,7 @@ when the source code is compiled with a C++ compiler.
 
 ## Ports
 
+* [C#, AQtun](https://www.nuget.org/packages/AQtun.LZAV)
 * [C++, vcpkg](https://vcpkg.link/ports/lzav)
 * [FreeArc, by Shegorat](https://krinkels.org/resources/cls-lzav.579/)
 * [Rust, by pkolaczk](https://crates.io/crates/lzav)
