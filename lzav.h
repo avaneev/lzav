@@ -1,7 +1,7 @@
 /**
  * @file lzav.h
  *
- * @version 5.14
+ * @version 5.15
  *
  * @brief Self-contained header file for the "LZAV" in-memory data compression
  * and decompression algorithms.
@@ -40,7 +40,7 @@
 #define LZAV_INCLUDED
 
 #define LZAV_API_VER 0x206 ///< API version; unrelated to the code version.
-#define LZAV_VER_STR "5.14" ///< LZAV source code version string.
+#define LZAV_VER_STR "5.15" ///< LZAV source code version string.
 
 /**
  * @def LZAV_FMT_MIN
@@ -580,7 +580,7 @@
 
 	#if defined( LZAV_GCC_BUILTINS )
 
-		#define LZAV_NO_INLINE LZAV_INLINE __attribute__((noinline))
+		#define LZAV_NO_INLINE LZAV_STATIC __attribute__((noinline))
 
 	#elif defined( _MSC_VER )
 
@@ -1618,7 +1618,7 @@ LZAV_INLINE int lzav_compress_mref6( const void* const src,
  * there is not enough memory.
  */
 
-LZAV_INLINE_F int lzav_compress_default( const void* const src,
+LZAV_INLINE int lzav_compress_default( const void* const src,
 	void* const dst, const int srclen, const int dstlen ) LZAV_NOEXC
 {
 	if( srclen < LZAV_MR5_THR )
