@@ -27,6 +27,11 @@ The internal functions in `lzav.h` allow developers to implement and test
 their own compression algorithms. LZAV's stream format allows for high
 compression ratios and high decompression speeds.
 
+## Powered By
+
+(This sponsored banner spot is available to interested parties, contact
+aleksey.vaneev@gmail.com or info@voxengo.com for details.)
+
 ## Usage
 
 To compress data:
